@@ -1,51 +1,51 @@
 import type { Trend, CapitalizationStrategy, LearningResource } from '@/types';
 
-export const mockTrends: Trend[] = [
-  {
-    id: 'trend-1',
-    title: 'Rise of Specialized Small Language Models (SLMs)',
-    summary: 'This week saw a significant increase in research and development of smaller, highly specialized language models. These SLMs are designed for specific tasks or industries, offering greater efficiency and cost-effectiveness compared to large general-purpose models.',
-    category: 'Language Models',
-    date: '2025-W28', // Updated year
-    customerImpact: [
-      { industry: 'Finance', impactAnalysis: 'SLMs can be trained on proprietary financial data for tasks like fraud detection, sentiment analysis of market news, and regulatory compliance checks with lower inference costs.' },
-      { industry: 'Healthcare', impactAnalysis: 'Custom SLMs can assist in medical report summarization, analysis of patient feedback, and powering specialized medical chatbots, potentially improving diagnostic speed and patient care.' },
-      { industry: 'Manufacturing', impactAnalysis: 'SLMs can optimize supply chain communication, analyze machine sensor data for predictive maintenance, and generate technical documentation more efficiently.' },
-    ],
-    consultingPositioning: {
-      strategicAdvice: 'Advise clients on identifying high-impact use cases for SLMs within their operations. Emphasize the balance between customization, cost, and performance.',
-      newServices: ['SLM Feasibility Assessment & ROI Analysis', 'Custom SLM Development & Fine-tuning Services'],
-      adaptedServices: ['Augment existing data analytics services with SLM-powered insights.'],
-      talkingPoints: ['Achieve targeted AI capabilities without the overhead of massive models.', 'Unlock value from domain-specific data with tailored AI solutions.'],
-      risksOrLimitations: ['Data availability and quality for training SLMs can be a bottleneck.', 'Potential for narrow expertise; SLMs may not generalize well outside their trained domain.'],
-    },
-    momentum: 75,
-    marketSize: '$5B (projected 2026)', // Adjusted projection year
-  },
-  {
-    id: 'trend-2',
-    title: 'AI-Powered Code Generation Matures',
-    summary: 'AI code generation tools are becoming increasingly sophisticated, moving beyond simple autocompletion to generating complex code blocks and even entire applications. GitHub Copilot and similar tools are seeing wider adoption.',
-    category: 'Developer Tools',
-    date: '2025-W28', // Updated year
-    customerImpact: [
-      { industry: 'Software Development', impactAnalysis: 'Significant productivity gains for development teams, faster prototyping, and potentially lower development costs. May also lead to challenges in code quality assurance and security if not managed well.' },
-      { industry: 'IT Departments (All Sectors)', impactAnalysis: 'Enables faster creation of internal tools and automation scripts. Requires upskilling of IT staff to leverage these tools effectively and manage associated risks.' },
-    ],
-    consultingPositioning: {
-      strategicAdvice: 'Help clients integrate AI code generation into their SDLC, focusing on best practices for quality, security, and IP management.',
-      newServices: ['AI Code Generation Strategy & Implementation', 'Developer Training for AI-Assisted Coding'],
-      talkingPoints: ['Accelerate software development cycles.', 'Empower developers to focus on higher-value tasks.'],
-      risksOrLimitations: ['Generated code may contain bugs or security vulnerabilities.', 'Over-reliance can stifle junior developer learning.', 'IP and licensing concerns with generated code.'],
-    },
-    momentum: 90,
-  },
-];
+// export const mockTrends: Trend[] = [
+//   {
+//     id: 'trend-1',
+//     title: 'Rise of Specialized Small Language Models (SLMs)',
+//     summary: 'This week saw a significant increase in research and development of smaller, highly specialized language models. These SLMs are designed for specific tasks or industries, offering greater efficiency and cost-effectiveness compared to large general-purpose models.',
+//     category: 'Language Models',
+//     date: '2025-W28', // Updated year
+//     customerImpact: [
+//       { industry: 'Finance', impactAnalysis: 'SLMs can be trained on proprietary financial data for tasks like fraud detection, sentiment analysis of market news, and regulatory compliance checks with lower inference costs.' },
+//       { industry: 'Healthcare', impactAnalysis: 'Custom SLMs can assist in medical report summarization, analysis of patient feedback, and powering specialized medical chatbots, potentially improving diagnostic speed and patient care.' },
+//       { industry: 'Manufacturing', impactAnalysis: 'SLMs can optimize supply chain communication, analyze machine sensor data for predictive maintenance, and generate technical documentation more efficiently.' },
+//     ],
+//     consultingPositioning: {
+//       strategicAdvice: 'Advise clients on identifying high-impact use cases for SLMs within their operations. Emphasize the balance between customization, cost, and performance.',
+//       newServices: ['SLM Feasibility Assessment & ROI Analysis', 'Custom SLM Development & Fine-tuning Services'],
+//       adaptedServices: ['Augment existing data analytics services with SLM-powered insights.'],
+//       talkingPoints: ['Achieve targeted AI capabilities without the overhead of massive models.', 'Unlock value from domain-specific data with tailored AI solutions.'],
+//       risksOrLimitations: ['Data availability and quality for training SLMs can be a bottleneck.', 'Potential for narrow expertise; SLMs may not generalize well outside their trained domain.'],
+//     },
+//     momentum: 75,
+//     marketSize: '$5B (projected 2026)', // Adjusted projection year
+//   },
+//   {
+//     id: 'trend-2',
+//     title: 'AI-Powered Code Generation Matures',
+//     summary: 'AI code generation tools are becoming increasingly sophisticated, moving beyond simple autocompletion to generating complex code blocks and even entire applications. GitHub Copilot and similar tools are seeing wider adoption.',
+//     category: 'Developer Tools',
+//     date: '2025-W28', // Updated year
+//     customerImpact: [
+//       { industry: 'Software Development', impactAnalysis: 'Significant productivity gains for development teams, faster prototyping, and potentially lower development costs. May also lead to challenges in code quality assurance and security if not managed well.' },
+//       { industry: 'IT Departments (All Sectors)', impactAnalysis: 'Enables faster creation of internal tools and automation scripts. Requires upskilling of IT staff to leverage these tools effectively and manage associated risks.' },
+//     ],
+//     consultingPositioning: {
+//       strategicAdvice: 'Help clients integrate AI code generation into their SDLC, focusing on best practices for quality, security, and IP management.',
+//       newServices: ['AI Code Generation Strategy & Implementation', 'Developer Training for AI-Assisted Coding'],
+//       talkingPoints: ['Accelerate software development cycles.', 'Empower developers to focus on higher-value tasks.'],
+//       risksOrLimitations: ['Generated code may contain bugs or security vulnerabilities.', 'Over-reliance can stifle junior developer learning.', 'IP and licensing concerns with generated code.'],
+//     },
+//     momentum: 90,
+//   },
+// ];
 
 export const mockStrategies: CapitalizationStrategy[] = [
   {
     id: 'strategy-1',
-    trendId: 'trend-1',
+    trendId: 'trend-1', // This ID would refer to a dynamically generated trend if strategies were also dynamic
     title: 'SLM Adoption Workshop for Mid-Market Enterprises',
     description: 'A targeted workshop to educate mid-market enterprises on the benefits and practical applications of Specialized Language Models (SLMs).',
     date: '2025-W28', // Updated year
@@ -74,7 +74,7 @@ export const mockStrategies: CapitalizationStrategy[] = [
 export const mockResources: LearningResource[] = [
   {
     id: 'resource-1',
-    trendId: 'trend-1',
+    trendId: 'trend-1', // This ID would refer to a dynamically generated trend if resources were also dynamic
     title: 'On the Dangers of Stochastic Parrots: Can Language Models Be Too Big?',
     type: 'Paper',
     url: 'https://dl.acm.org/doi/10.1145/3442188.3445922',
@@ -89,7 +89,7 @@ export const mockResources: LearningResource[] = [
   },
   {
     id: 'resource-2',
-    trendId: 'trend-2',
+    trendId: 'trend-2', // This ID would refer to a dynamically generated trend if resources were also dynamic
     title: 'GitHub Copilot Documentation',
     type: 'Tool',
     url: 'https://docs.github.com/en/copilot',
@@ -115,4 +115,3 @@ export const mockResources: LearningResource[] = [
     tags: ['AI Fundamentals', 'Machine Learning', 'Business Impact'],
   },
 ];
-

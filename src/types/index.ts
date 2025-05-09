@@ -4,7 +4,7 @@ export interface Trend {
   title: string;
   summary: string;
   category: string; // e.g., "Generative AI", "LLM Optimization", "AI Ethics"
-  date: string; // Week of YYYY-MM-DD
+  date: string; // Week of YYYY-MM-DD or YYYY-Www
   customerImpact: {
     industry: string;
     impactAnalysis: string;
@@ -16,8 +16,8 @@ export interface Trend {
     talkingPoints?: string[];
     risksOrLimitations?: string[];
   };
-  momentum?: number; // Optional: for charts, e.g., 0-100
-  marketSize?: string; // Optional: for charts, e.g., "$10B"
+  momentum?: number; // Optional: for charts, e.g., 0-100. Made explicitly optional.
+  marketSize?: string; // Optional: for charts, e.g., "$10B". Made explicitly optional.
 }
 
 export interface CapitalizationStrategy {

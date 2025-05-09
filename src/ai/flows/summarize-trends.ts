@@ -3,7 +3,7 @@
 'use server';
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z}from 'genkit';
 
 const TrendInputSchema = z.object({
   newsSummary: z
