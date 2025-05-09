@@ -71,7 +71,7 @@ export default async function DashboardPage() {
   const displayTrends = trends.slice(0, DEFAULT_NUMBER_OF_TRENDS_TO_FETCH); // Ensure we only display the requested number
 
   return (
-    <div className="container mx-auto py-8 px-4 md:px-0">
+    <div className="container mx-auto pt-0 pb-8 px-4 md:px-0">
       {/* LoadingOverlay is triggered via Suspense in layout for the initial data fetch */}
 
       <SectionHeader

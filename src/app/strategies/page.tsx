@@ -140,7 +140,7 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
   }
   
   return (
-    <div className="container mx-auto py-8 px-4 md:px-0">
+    <div className="container mx-auto pt-0 pb-8 px-4 md:px-0">
       <SectionHeader
         title="Capitalization Strategies"
         description="Discover AI-driven recommendations for new service offerings, partnerships, and actionable steps to capitalize on emerging AI trends."

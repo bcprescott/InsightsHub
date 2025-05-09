@@ -40,7 +40,7 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 md:px-0">
+    <div className="container mx-auto pt-0 pb-8 px-4 md:px-0">
       <SectionHeader
         title="Weekly AI Trend Analysis"
         description="Stay ahead with the latest AI-generated insights into market trends, customer impact, and strategic positioning for the past week."

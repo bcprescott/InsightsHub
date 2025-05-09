@@ -24,10 +24,10 @@ export function AppLayout({ children }: AppLayoutProps) {
           <SidebarNav />
         </SidebarContent>
       </Sidebar>
-      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14 group-data-[collapsible=icon]:sm:pl-[calc(var(--sidebar-width-icon)_+_1rem)] md:group-data-[collapsible=icon]:sm:pl-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))] transition-[padding-left] duration-200 ease-linear">
+      <div className="flex flex-col sm:gap-4 sm:pl-14 group-data-[collapsible=icon]:sm:pl-[calc(var(--sidebar-width-icon)_+_1rem)] md:group-data-[collapsible=icon]:sm:pl-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))] transition-[padding-left] duration-200 ease-linear">
         <AppHeader />
         <SidebarInset>
-          <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-6">{children}</main>
+          <main className="flex-1 p-4 md:p-6">{children}</main>
         </SidebarInset>
       </div>
     </div>
