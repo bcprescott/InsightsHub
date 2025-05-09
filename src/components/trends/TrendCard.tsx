@@ -35,7 +35,7 @@ const TrendCardComponent = ({ trend }: TrendCardProps) => {
           <CardTitle className="text-xl font-semibold text-primary">{trend.title}</CardTitle>
           <Badge variant="outline" className="text-sm">{trend.category}</Badge>
         </div>
-        <CardDescription>{trend.date} - Week of Analysis</CardDescription>
+        <CardDescription>{trend.date} - Date of Analysis</CardDescription>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground mb-4">{trend.summary}</p>

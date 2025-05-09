@@ -1,4 +1,5 @@
 
+
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { SearchBar } from '@/components/shared/SearchBar';
 import { TrendCard } from '@/components/trends/TrendCard';
@@ -16,7 +17,7 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
 
   try {
     const trendInput: GenerateAiTrendsInput = {
-      timePeriod: "past week", 
+      timePeriod: "past 24 hours", // Changed from "past week"
       numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH, 
     };
     const generatedTrends = await generateAiTrendsCached(trendInput);
@@ -43,8 +44,8 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
   return (
     <div className="w-full max-w-screen-xl pt-0 pb-8">
       <SectionHeader
-        title="Weekly AI Trend Analysis"
-        description="Stay ahead with the latest AI-generated insights into market trends, customer impact, and strategic positioning for the past week."
+        title="Daily AI Trend Analysis"
+        description="Stay ahead with the latest AI-generated insights into market trends, customer impact, and strategic positioning for today."
       />
       <SearchBar placeholder="Search trends by keyword, industry..." initialQuery={searchParams?.query || ''} />
       
@@ -69,7 +70,7 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
 
       {!isLoading && !error && displayedTrends.length === 0 && (
         <div className="text-center py-10">
-          <p className="text-lg text-muted-foreground">No AI trends found matching your criteria or generated for the past week.</p>
+          <p className="text-lg text-muted-foreground">No AI trends found matching your criteria or generated for today.</p>
           <p className="text-sm text-muted-foreground">Please try different keywords, clear the search, or check back later.</p>
         </div>
       )}

@@ -7,7 +7,7 @@
  * - TrendSchema
  * These schemas are used for validating and structuring data in Genkit flows.
  */
-import { z } from 'genkit'; // Changed from 'genkit/zod'
+import { z } from 'genkit';
 
 export const CustomerImpactSchema = z.object({
   industry: z.string().describe('The industry affected by the trend.'),
@@ -27,7 +27,7 @@ export const TrendSchema = z.object({
   title: z.string().describe('A concise title for the AI trend.'),
   summary: z.string().describe('A detailed summary of the AI trend, explaining what it is and its significance.'),
   category: z.string().describe('The category of the trend (e.g., "Generative AI", "LLM Optimization", "AI Ethics").'),
-  date: z.string().describe('The week of analysis for this trend, formatted as YYYY-Www (e.g., "2024-W28"). Use the current week.'),
+  date: z.string().describe('The date of analysis for this trend, formatted as YYYY-MM-DD (e.g., "2024-07-15"). Use the current date of analysis.'),
   customerImpact: z.array(CustomerImpactSchema).describe('An array of objects detailing the trend\'s impact on various customer industries.'),
   consultingPositioning: ConsultingPositioningSchema.describe('Recommendations for how the consulting team should strategically position itself for this trend.'),
   momentum: z.number().optional().describe('An optional score (0-100) indicating the trend\'s current momentum or buzz. Estimate if not directly available.'),
@@ -37,4 +37,3 @@ export const TrendSchema = z.object({
 export type Trend = z.infer<typeof TrendSchema>;
 export type CustomerImpact = z.infer<typeof CustomerImpactSchema>;
 export type ConsultingPositioning = z.infer<typeof ConsultingPositioningSchema>;
-

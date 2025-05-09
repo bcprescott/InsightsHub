@@ -4,7 +4,7 @@ export interface Trend {
   title: string;
   summary: string;
   category: string; // e.g., "Generative AI", "LLM Optimization", "AI Ethics"
-  date: string; // Week of YYYY-MM-DD or YYYY-Www
+  date: string; // Date of analysis, YYYY-MM-DD
   customerImpact: {
     industry: string;
     impactAnalysis: string;
@@ -43,7 +43,7 @@ export interface CapitalizationStrategy {
     step: string;
     priority: 'High' | 'Medium' | 'Low';
   }[];
-  date: string;
+  date: string; // Date of strategy generation, YYYY-MM-DD
 }
 
 export interface LearningResource {

@@ -1,4 +1,5 @@
 
+
 import type { Trend, LearningResource } from '@/types';
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
@@ -23,7 +24,7 @@ export default async function DashboardPage() {
 
   try {
     const trendInputParams: GenerateAiTrendsInput = {
-      timePeriod: "past week",
+      timePeriod: "past 24 hours", // Changed from "past week"
       numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
     };
 
@@ -65,7 +66,7 @@ export default async function DashboardPage() {
     <div className="w-full max-w-screen-xl pt-0 pb-8">
       <SectionHeader
         title="AI Insights Hub Dashboard"
-        description="Your central overview of the latest AI intelligence, strategic recommendations, and learning resources."
+        description="Your central overview of the latest AI intelligence, strategic recommendations, and learning resources for today."
       />
 
       {error && (
@@ -92,7 +93,7 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3">
         <DashboardSection
-          title="Key AI Trends"
+          title="Key AI Trends Today"
           icon={<Lightbulb className="h-5 w-5 text-primary" />}
           viewAllLink="/trends"
           isLoading={false}
@@ -111,7 +112,7 @@ export default async function DashboardPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">No key AI trends identified for the past week.</p>
+            <p className="text-sm text-muted-foreground">No key AI trends identified for today.</p>
           )}
         </DashboardSection>
 
