@@ -11,35 +11,50 @@ import { Terminal } from 'lucide-react';
 
 // Helper function to map SuggestCapitalizationOpportunitiesOutput to CapitalizationStrategy
 const mapOpportunitiesToStrategy = (
-  opportunities: SuggestCapitalizationOpportunitiesOutput,
+  opportunities: SuggestCapitalizationOpportunitiesOutput | null, // Allow null for error cases
   trend: Trend
 ): CapitalizationStrategy => {
+  if (!opportunities) {
+    // Create a placeholder/error strategy if opportunities couldn't be generated
+    return {
+      id: `strategy-failed-${trend.id}`,
+      trendId: trend.id,
+      title: `Strategy Generation Failed for: ${trend.title}`,
+      description: `Could not generate a capitalization strategy for the AI trend titled "${trend.title}". This may be due to an issue with the AI model or the input data. Please check the system logs.`,
+      date: trend.date,
+      actionableSteps: [{ step: "Review trend and attempt strategy regeneration if applicable.", priority: 'High' }],
+      newServiceOffering: undefined,
+      partnershipOpportunities: [],
+      targetClients: [],
+    };
+  }
+
   return {
     id: `strategy-${trend.id}`,
     trendId: trend.id,
     title: `Capitalization Strategy for: ${trend.title}`,
     description: `Strategic recommendations to capitalize on the AI trend titled "${trend.title}". This strategy explores potential new services, partnerships, target clients, and actionable steps.`,
     date: trend.date, // Use trend's date
-    newServiceOffering: opportunities.serviceOfferings.length > 0
+    newServiceOffering: opportunities.serviceOfferings && opportunities.serviceOfferings.length > 0
       ? {
           name: opportunities.serviceOfferings[0], // Take the first suggested offering
           scope: 'To be defined based on detailed analysis.', // Generic scope
           valueProposition: 'Leverages insights from the AI trend to deliver value.', // Generic VP
         }
       : undefined,
-    partnershipOpportunities: opportunities.partnershipOpportunities.map(opp => ({
+    partnershipOpportunities: opportunities.partnershipOpportunities?.map(opp => ({
       partnerType: 'AI/Tech Partner', // Generic partner type
       rationale: opp,
       potentialPartners: [], // Not provided by current flow
-    })),
-    targetClients: opportunities.targetClients.map(clientProfile => ({
+    })) || [],
+    targetClients: opportunities.targetClients?.map(clientProfile => ({
       industry: 'Various', // Generic industry
       profile: clientProfile,
-    })),
-    actionableSteps: opportunities.actionableSteps.map(step => ({
+    })) || [],
+    actionableSteps: opportunities.actionableSteps?.map(step => ({
       step: step,
       priority: 'Medium', // Default priority
-    })),
+    })) || [{ step: 'Define specific actionable steps based on the generated opportunities.', priority: 'Medium' }],
   };
 };
 
@@ -60,23 +75,20 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
       // Step 2: For each trend, generate capitalization opportunities in parallel
       const opportunityPromises = fetchedTrends.map(async (trend) => {
         const opportunitiesInput = {
-          // Provide a concise summary of the single trend for focused strategy generation
           aiTrends: `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}`,
         };
+        let opportunitiesOutput: SuggestCapitalizationOpportunitiesOutput | null = null;
         try {
-          const opportunitiesOutput = await suggestCapitalizationOpportunities(opportunitiesInput);
-          if (opportunitiesOutput) {
-            return mapOpportunitiesToStrategy(opportunitiesOutput, trend);
-          }
+          opportunitiesOutput = await suggestCapitalizationOpportunities(opportunitiesInput);
         } catch (oppError) {
           console.warn(`Failed to generate strategy for trend "${trend.title}":`, oppError);
-          // Optionally, log more details or add specific error handling for individual strategy generation
+          // opportunitiesOutput remains null, mapOpportunitiesToStrategy will handle this
         }
-        return null; // Return null for failed or skipped strategies
+        return mapOpportunitiesToStrategy(opportunitiesOutput, trend);
       });
 
-      const resolvedStrategies = await Promise.all(opportunityPromises);
-      strategies = resolvedStrategies.filter(strategy => strategy !== null) as CapitalizationStrategy[];
+      // Wait for all strategy generation attempts to complete
+      strategies = await Promise.all(opportunityPromises);
     }
   } catch (e) {
     console.error("Failed to load strategies data:", e);
