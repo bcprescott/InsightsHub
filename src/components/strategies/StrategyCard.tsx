@@ -12,10 +12,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, Briefcase, Users, ListChecks, Handshake } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface StrategyCardProps {
   strategy: CapitalizationStrategy;
 }
+
+const priorityDescriptions: Record<CapitalizationStrategy['actionableSteps'][0]['priority'], string> = {
+  High: "Critical task, requires immediate attention to achieve strategic goals.",
+  Medium: "Important task, should be addressed in the near term to maintain momentum.",
+  Low: "Less critical task, can be addressed when time permits or as a supporting activity.",
+};
 
 const StrategyCardComponent = ({ strategy }: StrategyCardProps) => {
   return (
@@ -68,16 +80,28 @@ const StrategyCardComponent = ({ strategy }: StrategyCardProps) => {
         {strategy.actionableSteps && strategy.actionableSteps.length > 0 && (
            <div className="p-3 bg-muted/50 rounded-md">
             <h4 className="font-medium text-foreground flex items-center mb-1"><ListChecks className="h-4 w-4 mr-2 text-primary" /> Actionable Steps</h4>
-            <ul className="space-y-1">
-              {strategy.actionableSteps.map((step, index) => (
-                <li key={index} className="text-sm text-muted-foreground flex justify-between items-center">
-                  <span>{step.step}</span>
-                  <Badge variant={step.priority === 'High' ? 'destructive' : step.priority === 'Medium' ? 'secondary' : 'outline'} className="text-xs">
-                    {step.priority}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
+            <TooltipProvider>
+              <ul className="space-y-1">
+                {strategy.actionableSteps.map((step, index) => (
+                  <li key={index} className="text-sm text-muted-foreground flex justify-between items-center">
+                    <span>{step.step}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge 
+                          variant={step.priority === 'High' ? 'destructive' : step.priority === 'Medium' ? 'secondary' : 'outline'} 
+                          className="text-xs cursor-default"
+                        >
+                          {step.priority}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center">
+                        <p>{priorityDescriptions[step.priority]}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </li>
+                ))}
+              </ul>
+            </TooltipProvider>
           </div>
         )}
       </CardContent>
