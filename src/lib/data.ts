@@ -6,7 +6,7 @@ export const mockTrends: Trend[] = [
     title: 'Rise of Specialized Small Language Models (SLMs)',
     summary: 'This week saw a significant increase in research and development of smaller, highly specialized language models. These SLMs are designed for specific tasks or industries, offering greater efficiency and cost-effectiveness compared to large general-purpose models.',
     category: 'Language Models',
-    date: '2024-W28',
+    date: '2025-W28', // Updated year
     customerImpact: [
       { industry: 'Finance', impactAnalysis: 'SLMs can be trained on proprietary financial data for tasks like fraud detection, sentiment analysis of market news, and regulatory compliance checks with lower inference costs.' },
       { industry: 'Healthcare', impactAnalysis: 'Custom SLMs can assist in medical report summarization, analysis of patient feedback, and powering specialized medical chatbots, potentially improving diagnostic speed and patient care.' },
@@ -20,14 +20,14 @@ export const mockTrends: Trend[] = [
       risksOrLimitations: ['Data availability and quality for training SLMs can be a bottleneck.', 'Potential for narrow expertise; SLMs may not generalize well outside their trained domain.'],
     },
     momentum: 75,
-    marketSize: '$5B (projected 2025)',
+    marketSize: '$5B (projected 2026)', // Adjusted projection year
   },
   {
     id: 'trend-2',
     title: 'AI-Powered Code Generation Matures',
     summary: 'AI code generation tools are becoming increasingly sophisticated, moving beyond simple autocompletion to generating complex code blocks and even entire applications. GitHub Copilot and similar tools are seeing wider adoption.',
     category: 'Developer Tools',
-    date: '2024-W28',
+    date: '2025-W28', // Updated year
     customerImpact: [
       { industry: 'Software Development', impactAnalysis: 'Significant productivity gains for development teams, faster prototyping, and potentially lower development costs. May also lead to challenges in code quality assurance and security if not managed well.' },
       { industry: 'IT Departments (All Sectors)', impactAnalysis: 'Enables faster creation of internal tools and automation scripts. Requires upskilling of IT staff to leverage these tools effectively and manage associated risks.' },
@@ -48,7 +48,7 @@ export const mockStrategies: CapitalizationStrategy[] = [
     trendId: 'trend-1',
     title: 'SLM Adoption Workshop for Mid-Market Enterprises',
     description: 'A targeted workshop to educate mid-market enterprises on the benefits and practical applications of Specialized Language Models (SLMs).',
-    date: '2024-W28',
+    date: '2025-W28', // Updated year
     newServiceOffering: {
       name: 'SLM Adoption & Strategy Workshop',
       scope: 'A 1-day interactive workshop covering SLM fundamentals, use case identification, data requirements, and a roadmap for pilot project implementation.',
@@ -115,3 +115,4 @@ export const mockResources: LearningResource[] = [
     tags: ['AI Fundamentals', 'Machine Learning', 'Business Impact'],
   },
 ];
+
