@@ -12,6 +12,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Lightbulb, Target, BookOpen, Terminal, AlertTriangle, ListChecks, Briefcase } from 'lucide-react';
+import { cache } from 'react';
+
+// Cached versions of AI flow functions
+const generateAiTrendsCached = cache(generateAiTrends);
+const suggestCapitalizationOpportunitiesCached = cache(suggestCapitalizationOpportunities);
+
 
 export default async function DashboardPage() {
   let trends: Trend[] = [];
@@ -26,7 +32,7 @@ export default async function DashboardPage() {
       timePeriod: "past week",
       numberOfTrends: 3, // Fetch top 3 trends for the dashboard
     };
-    trends = await generateAiTrends(trendInput);
+    trends = await generateAiTrendsCached(trendInput);
 
     if (trends.length > 0) {
       // Generate summary for opportunities flow
@@ -34,7 +40,7 @@ export default async function DashboardPage() {
         .map(t => `Trend Title: ${t.title}\nSummary: ${t.summary}\nCategory: ${t.category}\nCustomer Impact Highlights: ${t.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`)
         .join('\n\n---\n\n');
       
-      opportunities = await suggestCapitalizationOpportunities({ aiTrends: aiTrendsSummary });
+      opportunities = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
     }
 
     // Fetch featured resources (e.g., top 3 by rating or newest)

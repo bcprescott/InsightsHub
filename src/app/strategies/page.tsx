@@ -9,6 +9,12 @@ import { generateAiTrends } from '@/ai/flows/generate-ai-trends-flow';
 import { suggestCapitalizationOpportunities } from '@/ai/flows/suggest-opportunities';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
+import { cache } from 'react';
+
+// Cached versions of AI flow functions
+const generateAiTrendsCached = cache(generateAiTrends);
+const suggestCapitalizationOpportunitiesCached = cache(suggestCapitalizationOpportunities);
+
 
 // Helper function to get current week in YYYY-Www format
 const getCurrentWeekFormatted = (): string => {
@@ -97,7 +103,7 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
       };
       let opportunitiesOutput: SuggestCapitalizationOpportunitiesOutput | null = null;
       try {
-        opportunitiesOutput = await suggestCapitalizationOpportunities(opportunitiesInput);
+        opportunitiesOutput = await suggestCapitalizationOpportunitiesCached(opportunitiesInput);
       } catch (oppError) {
         console.warn(`Failed to generate strategy for specific trend "${trendForStrategy.title}":`, oppError);
       }
@@ -109,7 +115,7 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
         timePeriod: "past week",
         numberOfTrends: 3,
       };
-      const fetchedTrends = await generateAiTrends(trendInput);
+      const fetchedTrends = await generateAiTrendsCached(trendInput);
 
       if (fetchedTrends && fetchedTrends.length > 0) {
         const opportunityPromises = fetchedTrends.map(async (trend) => {
@@ -118,7 +124,7 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
           };
           let opportunitiesOutput: SuggestCapitalizationOpportunitiesOutput | null = null;
           try {
-            opportunitiesOutput = await suggestCapitalizationOpportunities(opportunitiesInput);
+            opportunitiesOutput = await suggestCapitalizationOpportunitiesCached(opportunitiesInput);
           } catch (oppError) {
             console.warn(`Failed to generate strategy for trend "${trend.title}":`, oppError);
           }

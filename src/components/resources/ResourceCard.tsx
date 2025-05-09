@@ -1,4 +1,5 @@
 import type { LearningResource } from '@/types';
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -29,7 +30,7 @@ const StarRating = ({ rating }: { rating: number }) => {
   );
 };
 
-export function ResourceCard({ resource }: ResourceCardProps) {
+const ResourceCardComponent = ({ resource }: ResourceCardProps) => {
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
       <CardHeader>
@@ -78,3 +79,6 @@ export function ResourceCard({ resource }: ResourceCardProps) {
     </Card>
   );
 }
+
+export const ResourceCard = React.memo(ResourceCardComponent);
+ResourceCard.displayName = 'ResourceCard';

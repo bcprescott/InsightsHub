@@ -5,6 +5,10 @@ import type { Trend } from '@/types';
 import { generateAiTrends, type GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
+import { cache } from 'react';
+
+// Cached version of AI flow function
+const generateAiTrendsCached = cache(generateAiTrends);
 
 export default async function TrendsPage({ searchParams }: { searchParams?: { query?: string }}) {
   let trends: Trend[] = [];
@@ -17,14 +21,10 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
       timePeriod: "past week", // Or make this configurable
       numberOfTrends: 3, // Or make this configurable
     };
-    // Fetch trends using the Genkit flow
-    const generatedTrends = await generateAiTrends(trendInput);
+    // Fetch trends using the cached Genkit flow
+    const generatedTrends = await generateAiTrendsCached(trendInput);
     
-    // The flow now directly returns Trend[] compatible with Trend type from @/types
-    // but ensure all fields are correctly populated or handled if optional.
-    // For this example, we assume generateAiTrends returns data largely compatible with our Trend type.
-    // The zod schema in the flow ensures the structure.
-    trends = generatedTrends as Trend[]; // Type assertion, ensure compatibility
+    trends = generatedTrends as Trend[]; 
 
   } catch (e) {
     console.error("Failed to fetch AI trends:", e);

@@ -1,4 +1,5 @@
 import type { Trend } from '@/types';
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -18,7 +19,7 @@ interface TrendCardProps {
   trend: Trend;
 }
 
-export function TrendCard({ trend }: TrendCardProps) {
+const TrendCardComponent = ({ trend }: TrendCardProps) => {
   const trendDataForUrl = {
     id: trend.id,
     title: trend.title,
@@ -114,3 +115,6 @@ export function TrendCard({ trend }: TrendCardProps) {
     </Card>
   );
 }
+
+export const TrendCard = React.memo(TrendCardComponent);
+TrendCard.displayName = 'TrendCard';
