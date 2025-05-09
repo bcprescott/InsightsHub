@@ -2,6 +2,7 @@
 
 
 
+
 import type { Trend, LearningResource } from '@/types/zodSchemas'; // Ensure using zodSchemas version
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
@@ -59,7 +60,7 @@ export default async function DashboardPage() {
                             trendTitle: trend.title,
                             trendSummary: trend.summary,
                             trendCategory: trend.category,
-                            numberOfResources: 1, // Fetch 1 resource per trend for dashboard fallback
+                            numberOfResources: 3, // Fetch 3 resources per trend for dashboard fallback
                         });
                         return resources.map(res => ({ ...res, trendId: trend.id }));
                     } catch (e) {
@@ -203,4 +204,5 @@ export default async function DashboardPage() {
     </div>
   );
 }
+
 

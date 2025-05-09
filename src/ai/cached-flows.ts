@@ -1,3 +1,4 @@
+
 // src/ai/cached-flows.ts
 'use server';
 
@@ -91,20 +92,26 @@ export const suggestCapitalizationOpportunitiesCached = cache(
 export const generateLearningResourcesCached = cache(
   async (input: GenerateLearningResourcesInput): Promise<GenerateLearningResourcesOutput> => {
     const now = Date.now();
-    const cacheKey = JSON.stringify({ trendTitle: input.trendTitle, trendSummary: input.trendSummary }); // Cache based on trend content
+    // Cache key includes all relevant input fields to differentiate requests
+    const cacheKey = JSON.stringify({ 
+      trendTitle: input.trendTitle, 
+      trendSummary: input.trendSummary,
+      trendCategory: input.trendCategory,
+      numberOfResources: input.numberOfResources 
+    });
 
     const cachedEntry = globalCache.resources?.get(cacheKey);
+    // Ensure the entire input matches for a cache hit, not just parts of it.
     if (
       cachedEntry &&
-      JSON.stringify(cachedEntry.input.trendTitle) === JSON.stringify(input.trendTitle) && // Be more specific with comparison
-      JSON.stringify(cachedEntry.input.trendSummary) === JSON.stringify(input.trendSummary) &&
+      JSON.stringify(cachedEntry.input) === JSON.stringify(input) &&
       (now - cachedEntry.timestamp) < CACHE_DURATION_MS
     ) {
-      console.log(`Serving learning resources for trend '${input.trendTitle}' from global cache`);
+      console.log(`Serving learning resources for trend '${input.trendTitle}' (requesting ${input.numberOfResources}) from global cache`);
       return cachedEntry.output;
     }
 
-    console.log(`Fetching new learning resources from AI for trend '${input.trendTitle}'`);
+    console.log(`Fetching new learning resources from AI for trend '${input.trendTitle}' (requesting ${input.numberOfResources})`);
     const output = await originalGenerateLearningResources(input);
     globalCache.resources?.set(cacheKey, { input, output, timestamp: now });
     return output;
@@ -139,7 +146,7 @@ export async function primeAiDataCache(
         trendTitle: trend.title,
         trendSummary: trend.summary,
         trendCategory: trend.category,
-        numberOfResources: 2, // Fetch 2 resources per trend for the dashboard display
+        numberOfResources: 3, // Fetch 3 resources per trend for the dashboard display
       };
 
       let opportunityData: SuggestCapitalizationOpportunitiesOutput | null = null;
@@ -184,3 +191,4 @@ export async function primeAiDataCache(
   console.log('AI Data Cache priming process complete.');
   return { trends, opportunities: allOpportunities, resources: allLearningResources };
 }
+
