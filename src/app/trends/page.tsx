@@ -1,5 +1,6 @@
 
 
+
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { SearchBar } from '@/components/shared/SearchBar';
 import { TrendCard } from '@/components/trends/TrendCard';
@@ -10,14 +11,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { DEFAULT_NUMBER_OF_TRENDS_TO_FETCH } from '@/lib/constants';
 
-export default async function TrendsPage({ searchParams }: { searchParams?: { query?: string }}) {
+export default async function TrendsPage({ searchParams }: { searchParams?: { query?: string, trendId?: string }}) {
   let trends: Trend[] = [];
   let error: string | null = null;
   let isLoading = true; 
 
   try {
     const trendInput: GenerateAiTrendsInput = {
-      timePeriod: "past 24 hours", // Changed from "past week"
+      timePeriod: "past 24 hours", 
       numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH, 
     };
     const generatedTrends = await generateAiTrendsCached(trendInput);
@@ -31,7 +32,10 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
   }
   
   let displayedTrends = trends;
-  if (searchParams?.query) {
+
+  if (searchParams?.trendId) {
+    displayedTrends = trends.filter(trend => trend.id === searchParams.trendId);
+  } else if (searchParams?.query) {
     const query = searchParams.query.toLowerCase();
     displayedTrends = trends.filter(trend => 
       trend.title.toLowerCase().includes(query) ||
@@ -41,13 +45,17 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
     );
   }
 
+
   return (
     <div className="w-full max-w-screen-xl pt-0 pb-8">
       <SectionHeader
         title="Daily AI Trend Analysis"
         description="Stay ahead with the latest AI-generated insights into market trends, customer impact, and strategic positioning for today."
       />
-      <SearchBar placeholder="Search trends by keyword, industry..." initialQuery={searchParams?.query || ''} />
+      <SearchBar 
+        placeholder="Search trends by keyword, industry..." 
+        initialQuery={searchParams?.trendId ? '' : searchParams?.query || ''} // Clear search bar if showing specific trend
+      />
       
       {isLoading && (
         <div className="text-center py-10">
@@ -70,8 +78,10 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
 
       {!isLoading && !error && displayedTrends.length === 0 && (
         <div className="text-center py-10">
-          <p className="text-lg text-muted-foreground">No AI trends found matching your criteria or generated for today.</p>
-          <p className="text-sm text-muted-foreground">Please try different keywords, clear the search, or check back later.</p>
+          {searchParams?.trendId && <p className="text-lg text-muted-foreground">Trend not found.</p>}
+          {searchParams?.trendId && <p className="text-sm text-muted-foreground">The specific trend ID could not be found. It might be an old link or the trend is no longer available.</p>}
+          {!searchParams?.trendId && <p className="text-lg text-muted-foreground">No AI trends found matching your criteria or generated for today.</p>}
+          {!searchParams?.trendId && <p className="text-sm text-muted-foreground">Please try different keywords, clear the search, or check back later.</p>}
         </div>
       )}
 
@@ -85,3 +95,4 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
     </div>
   );
 }
+

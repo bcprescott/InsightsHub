@@ -1,5 +1,6 @@
 
 
+
 import type { Trend, LearningResource } from '@/types';
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
@@ -24,18 +25,15 @@ export default async function DashboardPage() {
 
   try {
     const trendInputParams: GenerateAiTrendsInput = {
-      timePeriod: "past 24 hours", // Changed from "past week"
+      timePeriod: "past 24 hours", 
       numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
     };
 
-    // console.log("DashboardPage: Calling primeAiDataCache");
     const primedData = await primeAiDataCache(trendInputParams);
     trends = primedData.trends;
     allOpportunities = primedData.opportunities;
-    // console.log(`DashboardPage: Received ${trends.length} trends and ${allOpportunities.length} opportunity sets after priming.`);
-
+    
     if (!trends || trends.length === 0) {
-        // console.log("DashboardPage: Priming returned no trends, attempting direct fetch.");
         trends = await generateAiTrendsCached(trendInputParams); 
         if (trends.length > 0 && allOpportunities.length === 0) {
              const opportunityPromises = trends.map(async (trend) => {
@@ -102,7 +100,7 @@ export default async function DashboardPage() {
             <ul className="space-y-3">
               {displayTrends.map(trend => (
                 <li key={trend.id}>
-                  <Link href={`/trends?query=${encodeURIComponent(trend.title)}`} title={trend.summary} className="block font-medium text-foreground hover:text-primary transition-colors">
+                  <Link href={`/trends?trendId=${encodeURIComponent(trend.id)}`} title={trend.summary} className="block font-medium text-foreground hover:text-primary transition-colors">
                     {trend.title}
                   </Link>
                   <p className="mt-0.5 text-xs text-muted-foreground">
@@ -182,3 +180,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

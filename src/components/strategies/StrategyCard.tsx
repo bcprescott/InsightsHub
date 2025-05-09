@@ -1,3 +1,4 @@
+
 import type { CapitalizationStrategy } from '@/types';
 import React from 'react';
 import {
@@ -106,9 +107,7 @@ const StrategyCardComponent = ({ strategy }: StrategyCardProps) => {
         )}
       </CardContent>
       <CardFooter className="border-t pt-4 mt-auto">
-         {/* Assuming trends are listed under /trends and individual trend pages might not exist yet.
-             This link can be adjusted if individual trend pages are created e.g. /trends/${strategy.trendId} */}
-        <Link href={`/trends?query=${encodeURIComponent(strategy.trendId)}`} passHref legacyBehavior>
+        <Link href={`/trends?trendId=${encodeURIComponent(strategy.trendId)}`} passHref legacyBehavior>
           <Button variant="outline" className="w-full">
             View Related Trend <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -120,3 +119,4 @@ const StrategyCardComponent = ({ strategy }: StrategyCardProps) => {
 
 export const StrategyCard = React.memo(StrategyCardComponent);
 StrategyCard.displayName = 'StrategyCard';
+
