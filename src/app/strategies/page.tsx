@@ -19,7 +19,7 @@ const mapOpportunitiesToStrategy = (
     trendId: trend.id,
     title: `Capitalization Strategy for: ${trend.title}`,
     description: `Strategic recommendations to capitalize on the AI trend titled "${trend.title}". This strategy explores potential new services, partnerships, target clients, and actionable steps.`,
-    date: trend.date,
+    date: trend.date, // Use trend's date
     newServiceOffering: opportunities.serviceOfferings.length > 0
       ? {
           name: opportunities.serviceOfferings[0], // Take the first suggested offering
@@ -49,30 +49,34 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
   let isLoading = true;
 
   try {
-    // Step 1: Fetch AI trends
+    // Step 1: Fetch AI trends (consistent number with Trends page)
     const trendInput: GenerateAiTrendsInput = {
       timePeriod: "past week",
-      numberOfTrends: 5, // Fetch a reasonable number of trends to generate strategies for
+      numberOfTrends: 3, // Fetch 3 trends to align with Trends page and dashboard
     };
     const fetchedTrends = await generateAiTrends(trendInput);
 
     if (fetchedTrends && fetchedTrends.length > 0) {
-      // Step 2: For each trend, generate capitalization opportunities
-      for (const trend of fetchedTrends) {
+      // Step 2: For each trend, generate capitalization opportunities in parallel
+      const opportunityPromises = fetchedTrends.map(async (trend) => {
         const opportunitiesInput = {
-          aiTrends: `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}`, // Focus on a single trend
+          // Provide a concise summary of the single trend for focused strategy generation
+          aiTrends: `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}`,
         };
         try {
           const opportunitiesOutput = await suggestCapitalizationOpportunities(opportunitiesInput);
           if (opportunitiesOutput) {
-            const strategy = mapOpportunitiesToStrategy(opportunitiesOutput, trend);
-            strategies.push(strategy);
+            return mapOpportunitiesToStrategy(opportunitiesOutput, trend);
           }
         } catch (oppError) {
           console.warn(`Failed to generate strategy for trend "${trend.title}":`, oppError);
-          // Optionally, add a placeholder or error strategy, or just skip
+          // Optionally, log more details or add specific error handling for individual strategy generation
         }
-      }
+        return null; // Return null for failed or skipped strategies
+      });
+
+      const resolvedStrategies = await Promise.all(opportunityPromises);
+      strategies = resolvedStrategies.filter(strategy => strategy !== null) as CapitalizationStrategy[];
     }
   } catch (e) {
     console.error("Failed to load strategies data:", e);
