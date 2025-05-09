@@ -42,6 +42,7 @@ import type { Trend, CapitalizationStrategy, LearningResource } from '@/types';
 //   },
 // ];
 
+/*
 export const mockStrategies: CapitalizationStrategy[] = [
   {
     id: 'strategy-1',
@@ -70,6 +71,7 @@ export const mockStrategies: CapitalizationStrategy[] = [
     ],
   },
 ];
+*/
 
 export const mockResources: LearningResource[] = [
   {
@@ -115,3 +117,4 @@ export const mockResources: LearningResource[] = [
     tags: ['AI Fundamentals', 'Machine Learning', 'Business Impact'],
   },
 ];
+
