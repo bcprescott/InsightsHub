@@ -8,6 +8,7 @@ import { mockResources } from '@/lib/data'; // Using mock resources for now
 
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
+import { LoadingOverlay } from '@/components/shared/LoadingOverlay';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Lightbulb, Target, BookOpen, Terminal, AlertTriangle, ListChecks, Briefcase } from 'lucide-react';
@@ -65,17 +66,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-0">
+      <LoadingOverlay isLoading={isLoading} message="Generating AI insights... Please wait." />
+
       <SectionHeader
         title="AI Insights Hub Dashboard"
         description="Your central overview of the latest AI intelligence, strategic recommendations, and learning resources."
       />
-
-      {isLoading && (
-        <div className="text-center py-10">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg text-muted-foreground">Loading dashboard insights...</p>
-        </div>
-      )}
 
       {!isLoading && error && (
         <Alert variant="destructive" className="my-6">
