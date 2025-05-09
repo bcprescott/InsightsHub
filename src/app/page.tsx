@@ -1,9 +1,5 @@
 
-
-
-
-
-import type { Trend, LearningResource } from '@/types/zodSchemas'; // Ensure using zodSchemas version
+import type { Trend, LearningResource } from '@/types/zodSchemas'; 
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
 
@@ -19,70 +15,79 @@ import React from 'react';
 
 
 export default async function DashboardPage() {
-  let trends: Trend[] = [];
-  let allOpportunities: { trendId: string; data: SuggestCapitalizationOpportunitiesOutput | null }[] = [];
-  let dynamicallyGeneratedResources: LearningResource[] = [];
   let error: string | null = null;
 
-  try {
-    const trendInputParams: GenerateAiTrendsInput = {
-      timePeriod: "past 24 hours", 
-      numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
-    };
+  const trendInputParams: GenerateAiTrendsInput = {
+    timePeriod: "past 24 hours", 
+    numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
+  };
 
-    const primedData = await primeAiDataCache(trendInputParams);
-    trends = primedData.trends;
-    allOpportunities = primedData.opportunities;
-    dynamicallyGeneratedResources = primedData.resources;
-    
-    // Fallback if priming didn't fully populate
-    if ((!trends || trends.length === 0) && DEFAULT_NUMBER_OF_TRENDS_TO_FETCH > 0) {
-        console.log("DashboardPage: Priming seems to have missed trends, attempting direct fetch.");
-        trends = await generateAiTrendsCached(trendInputParams); 
-        if (trends.length > 0) {
-            if (allOpportunities.length === 0) {
-                const opportunityPromises = trends.map(async (trend) => {
-                    const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
-                    try {
-                        const opportunityData = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
-                        return { trendId: trend.id, data: opportunityData };
-                    } catch (e) {
-                        console.warn(`DashboardPage: Fallback - Failed to generate opportunities for trend ${trend.id}:`, e);
-                        return { trendId: trend.id, data: null };
-                    }
-                });
-                allOpportunities = await Promise.all(opportunityPromises);
-            }
-            if (dynamicallyGeneratedResources.length === 0) {
-                 const resourcePromises = trends.map(async (trend) => {
-                    try {
-                        const resources = await generateLearningResourcesCached({
-                            trendTitle: trend.title,
-                            trendSummary: trend.summary,
-                            trendCategory: trend.category,
-                            numberOfResources: 3, // Fetch 3 resources per trend for dashboard fallback
-                        });
-                        return resources.map(res => ({ ...res, trendId: trend.id }));
-                    } catch (e) {
-                        console.warn(`DashboardPage: Fallback - Failed to generate resources for trend ${trend.id}:`, e);
-                        return [];
-                    }
-                });
-                const nestedResources = await Promise.all(resourcePromises);
-                dynamicallyGeneratedResources = nestedResources.flat();
-            }
-        }
+  // Attempt to get all data from primeAiDataCache
+  let { 
+    trends, 
+    opportunities: allOpportunities, 
+    resources: dynamicallyGeneratedResources 
+  } = await primeAiDataCache(trendInputParams).catch(e => {
+    console.error("DashboardPage: Error during primeAiDataCache:", e);
+    error = e instanceof Error ? e.message : "An unknown error occurred during initial data priming.";
+    return { trends: [], opportunities: [], resources: [] }; // Return empty structure on error
+  });
+
+  // Fallback strategy: If priming got trends, but other specific data is missing, try to fetch just that.
+  if (trends && trends.length > 0) {
+    // Check and fetch opportunities if missing or all are null
+    const opportunitiesAreEffectivelyMissing = !allOpportunities || allOpportunities.length === 0 || allOpportunities.every(op => op.data === null);
+    if (opportunitiesAreEffectivelyMissing) {
+      console.log("DashboardPage: Opportunities missing or empty after priming, attempting direct fetch for opportunities.");
+      try {
+        const opportunityPromises = trends.map(async (trend) => {
+          const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
+          const opportunityData = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
+          return { trendId: trend.id, data: opportunityData };
+        });
+        allOpportunities = await Promise.all(opportunityPromises);
+      } catch (e) {
+        console.warn(`DashboardPage: Fallback - Failed to generate opportunities:`, e);
+        if (!error) error = e instanceof Error ? e.message : "Failed to fetch opportunities in fallback.";
+        // allOpportunities might remain as initially set or partially filled
+      }
     }
 
-
-  } catch (e) {
-    console.error("DashboardPage: Failed to load dashboard data:", e);
-    error = e instanceof Error ? e.message : "An unknown error occurred while fetching dashboard data.";
+    // Check and fetch resources if missing
+    const resourcesAreMissing = !dynamicallyGeneratedResources || dynamicallyGeneratedResources.length === 0;
+    if (resourcesAreMissing) {
+      console.log("DashboardPage: Resources missing after priming, attempting direct fetch for resources.");
+      try {
+        const resourcePromises = trends.map(async (trend) => {
+          const resourcesOutput = await generateLearningResourcesCached({
+            trendTitle: trend.title,
+            trendSummary: trend.summary,
+            trendCategory: trend.category,
+            numberOfResources: 3, // Fetch 3 resources per trend for dashboard display
+          });
+          return resourcesOutput.map(res => ({ ...res, trendId: trend.id }));
+        });
+        dynamicallyGeneratedResources = (await Promise.all(resourcePromises)).flat();
+        console.log(`DashboardPage: Fallback fetched ${dynamicallyGeneratedResources.length} resources.`);
+      } catch (e) {
+         console.warn(`DashboardPage: Fallback - Failed to generate learning resources:`, e);
+         if (!error) error = e instanceof Error ? e.message : "Failed to fetch learning resources in fallback.";
+         // dynamicallyGeneratedResources will remain as it was (likely empty)
+      }
+    }
+  } else if (!error) { 
+    // This case means primeAiDataCache returned no trends, and no prior error was set.
+    console.log("DashboardPage: primeAiDataCache returned no trends. Dashboard will be sparse or show no data messages.");
+    // No further fallbacks here if trends themselves are missing from the primary source.
+    // The `trends`, `allOpportunities`, `dynamicallyGeneratedResources` will be empty arrays from initial destructuring default.
   }
+
 
   const displayOpportunities = allOpportunities.find(op => op.data !== null)?.data ?? null;
   const displayTrends = trends.slice(0, DEFAULT_NUMBER_OF_TRENDS_TO_FETCH);
-  const featuredResources = dynamicallyGeneratedResources.slice(0, 3); // Show top 3 overall generated resources
+  // Ensure dynamicallyGeneratedResources is an array before slicing
+  const featuredResources = Array.isArray(dynamicallyGeneratedResources) ? dynamicallyGeneratedResources.slice(0, 3) : [];
+
 
   return (
     <div className="w-full max-w-screen-xl pt-0 pb-8">
@@ -96,7 +101,7 @@ export default async function DashboardPage() {
           <Terminal className="h-4 w-4" />
           <AlertTitle>Error Loading Dashboard</AlertTitle>
           <AlertDescription>
-            Could not load all dashboard data at this time. Some sections may be unavailable. Please try again later.
+            Could not load all dashboard data at this time. Some sections may be unavailable. Please try refreshing.
             <br />
             <span className="text-xs">Details: {error}</span>
           </AlertDescription>
@@ -118,7 +123,7 @@ export default async function DashboardPage() {
           title="Key AI Trends Today"
           icon={<Lightbulb className="h-5 w-5 text-primary" />}
           viewAllLink="/trends"
-          isLoading={false}
+          isLoading={false} 
         >
           {displayTrends.length > 0 ? (
             <ul className="space-y-3">
@@ -134,7 +139,7 @@ export default async function DashboardPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">No key AI trends identified for today.</p>
+            !error && <p className="text-sm text-muted-foreground">No key AI trends identified for today.</p>
           )}
         </DashboardSection>
 
@@ -142,7 +147,7 @@ export default async function DashboardPage() {
           title="Strategic Recommendations"
           icon={<Target className="h-5 w-5 text-primary" />}
           viewAllLink="/strategies"
-          isLoading={false}
+          isLoading={false} 
         >
           {displayOpportunities ? (
             <div className="space-y-4">
@@ -176,7 +181,7 @@ export default async function DashboardPage() {
               )}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No strategic recommendations available currently.</p>
+            !error && <p className="text-sm text-muted-foreground">No strategic recommendations available currently.</p>
           )}
         </DashboardSection>
 
@@ -197,12 +202,10 @@ export default async function DashboardPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">No featured learning resources generated for today's trends.</p>
+             !error && <p className="text-sm text-muted-foreground">No featured learning resources generated for today's trends.</p>
           )}
         </DashboardSection>
       </div>
     </div>
   );
 }
-
-
