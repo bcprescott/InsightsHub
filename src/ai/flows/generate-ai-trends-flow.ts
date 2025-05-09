@@ -34,14 +34,14 @@ const trendGenerationPrompt = ai.definePrompt({
   output: { schema: GenerateAiTrendsOutputSchema },
   tools: [fetchNewsArticlesTool], // Make the tool available if needed, though the flow calls it separately first
   prompt: `
-You are an expert AI market analyst. Your task is to identify the top {{numberOfTrends}} most impactful AI trends from the provided news summary from the past week.
+You are an expert AI market analyst. Your task is to identify up to {{numberOfTrends}} most impactful AI trends from the provided news summary from the past week.
 For each trend, you need to provide a comprehensive analysis structured according to the output schema.
 The current date is {{currentDate}}. Ensure the 'date' field for each trend reflects the current week of analysis (e.g., YYYY-Www).
 
 News Summary:
 {{{newsSummary}}}
 
-Based on this news summary, generate {{numberOfTrends}} distinct AI trends.
+Based on this news summary, identify and describe up to {{numberOfTrends}} AI trends. If you can identify fewer than {{numberOfTrends}} significant trends from the summary, please provide those you can identify. Ensure each trend is distinct.
 For each trend, ensure you provide:
 - id: A unique, human-readable slug for the trend (e.g., "ai-in-healthcare-advances").
 - title: A concise and impactful title.
@@ -53,7 +53,7 @@ For each trend, ensure you provide:
 - momentum: An estimated score (0-100) of the trend's current momentum.
 - marketSize: An estimated market size (e.g., "$X Billion by YYYY").
 
-Generate the output as a JSON array conforming to the provided schema.
+Generate the output as a JSON array conforming to the provided schema. If no trends can be identified from the summary, return an empty JSON array.
 `,
   config: {
     temperature: 0.3, // Lower temperature for more factual and structured output
@@ -72,11 +72,15 @@ const generateAiTrendsFlow = ai.defineFlow(
     const newsOutput = await fetchNewsArticlesTool({ timePeriod: input.timePeriod });
     
     // Step 2: Prepare the news summary for the prompt
-    let newsSummary = "No articles found.";
+    let newsSummary = "No articles found for the specified period.";
     if (newsOutput.articles && newsOutput.articles.length > 0) {
       newsSummary = newsOutput.articles
         .map(article => `Title: ${article.title}\nSource: ${article.source}\nDate: ${article.publishedDate}\nSnippet: ${article.snippet}\n---\n`)
         .join('\n');
+    } else {
+      // If no articles are found, it's unlikely trends can be generated.
+      // We can return early, or let the LLM decide based on "No articles found."
+      // console.log("No news articles found, trend generation might yield no results.");
     }
 
     // Step 3: Get current date and week for the prompt
@@ -84,7 +88,10 @@ const generateAiTrendsFlow = ai.defineFlow(
     const year = now.getFullYear();
     const startOfYear = new Date(year, 0, 1);
     const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-    const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+    // Adjust day calculation for startOfYear.getDay() which is 0 for Sunday.
+    // ISO 8601 week date: Monday is the first day of the week.
+    const dayOfWeek = (startOfYear.getDay() + 6) % 7; // 0 for Monday, 1 for Tuesday .. 6 for Sunday
+    const weekNumber = Math.ceil((days + dayOfWeek + 1) / 7);
     const currentWeekFormatted = `${year}-W${String(weekNumber).padStart(2, '0')}`;
 
 
@@ -96,15 +103,12 @@ const generateAiTrendsFlow = ai.defineFlow(
     });
 
     if (!output) {
-      // Handle cases where the LLM might not return valid output,
-      // though Zod validation in the prompt should catch schema mismatches.
-      console.error("Trend generation failed or returned empty output.");
-      return [];
+      // This case should ideally be rare if the LLM adheres to the schema or Genkit handles schema validation errors.
+      console.error("Trend generation failed or returned undefined/null output from LLM.");
+      return []; // Return empty array if LLM output is not as expected (e.g. not an array)
     }
     
-    // Ensure date is correctly formatted for each trend if LLM doesn't do it perfectly.
-    // The prompt asks for YYYY-Www, so this should ideally be handled by the LLM.
-    // However, as a fallback or primary setter:
+    // Ensure date is correctly formatted and ID is generated for each trend.
     return output.map(trend => ({
       ...trend,
       id: trend.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''), // Ensure a valid slug-like ID
