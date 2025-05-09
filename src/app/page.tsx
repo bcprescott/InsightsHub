@@ -2,12 +2,13 @@ import type { Trend, LearningResource } from '@/types';
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
 
-import { generateAiTrendsCached, suggestCapitalizationOpportunitiesCached } from '@/ai/cached-flows'; // Updated import
+import { primeAiDataCache, generateAiTrendsCached, suggestCapitalizationOpportunitiesCached } from '@/ai/cached-flows'; 
 import { mockResources } from '@/lib/data'; 
 
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
-import { LoadingOverlay } from '@/components/shared/LoadingOverlay';
+// LoadingOverlay is now managed by Suspense in RootLayout for initial page load.
+// import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Lightbulb, Target, BookOpen, Terminal, AlertTriangle, ListChecks, Briefcase } from 'lucide-react';
@@ -16,47 +17,62 @@ import React from 'react';
 
 
 export default async function DashboardPage() {
-  // isLoading state is managed by Suspense and the LoadingOverlay component directly
   let trends: Trend[] = [];
   let allOpportunities: { trendId: string; data: SuggestCapitalizationOpportunitiesOutput | null }[] = [];
   let featuredResources: LearningResource[] = [];
   let error: string | null = null;
 
   try {
-    const trendInput: GenerateAiTrendsInput = {
+    // Define input for fetching trends
+    const trendInputParams: GenerateAiTrendsInput = {
       timePeriod: "past week",
       numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
     };
-    trends = await generateAiTrendsCached(trendInput);
 
-    if (trends.length > 0) {
-      const opportunityPromises = trends.map(async (trend) => {
-        const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
-        try {
-          const opportunityData = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
-          return { trendId: trend.id, data: opportunityData };
-        } catch (e) {
-          console.warn(`Failed to generate opportunities for trend ${trend.id}:`, e);
-          return { trendId: trend.id, data: null };
+    // Prime the cache and get initial data. This will make the AI calls.
+    // Subsequent calls to generateAiTrendsCached and suggestCapitalizationOpportunitiesCached 
+    // on other pages should hit the cache if inputs are the same and cache is not stale.
+    console.log("DashboardPage: Calling primeAiDataCache");
+    const primedData = await primeAiDataCache(trendInputParams);
+    trends = primedData.trends;
+    allOpportunities = primedData.opportunities;
+    console.log(`DashboardPage: Received ${trends.length} trends and ${allOpportunities.length} opportunity sets after priming.`);
+
+
+    // If, for some reason, priming didn't yield data (e.g. error during priming not caught by primeAiDataCache's internal try-catch for opportunities)
+    // or if you want to ensure data is present even if priming partially fails:
+    if (!trends || trends.length === 0) {
+        console.log("DashboardPage: Priming returned no trends, attempting direct fetch.");
+        trends = await generateAiTrendsCached(trendInputParams); // Fallback or ensure data
+        if (trends.length > 0 && allOpportunities.length === 0) {
+             const opportunityPromises = trends.map(async (trend) => {
+                const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
+                try {
+                const opportunityData = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
+                return { trendId: trend.id, data: opportunityData };
+                } catch (e) {
+                console.warn(`DashboardPage: Fallback - Failed to generate opportunities for trend ${trend.id}:`, e);
+                return { trendId: trend.id, data: null };
+                }
+            });
+            allOpportunities = await Promise.all(opportunityPromises);
         }
-      });
-      allOpportunities = await Promise.all(opportunityPromises);
     }
+
 
     featuredResources = mockResources.slice(0, 3);
 
   } catch (e) {
-    console.error("Failed to load dashboard data:", e);
+    console.error("DashboardPage: Failed to load dashboard data:", e);
     error = e instanceof Error ? e.message : "An unknown error occurred while fetching dashboard data.";
   }
 
   const displayOpportunities = allOpportunities.find(op => op.data !== null)?.data ?? null;
-  const displayTrends = trends.slice(0, 3);
+  const displayTrends = trends.slice(0, DEFAULT_NUMBER_OF_TRENDS_TO_FETCH); // Ensure we only display the requested number
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-0">
-      {/* LoadingOverlay is now triggered via Suspense in layout/page structure if needed, or handled per section */}
-      {/* For a page-wide initial load, Suspense in layout is preferred. Here, we show errors or no data states. */}
+      {/* LoadingOverlay is triggered via Suspense in layout for the initial data fetch */}
 
       <SectionHeader
         title="AI Insights Hub Dashboard"
@@ -80,7 +96,7 @@ export default async function DashboardPage() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>No Data Available</AlertTitle>
           <AlertDescription>
-            Currently, there is no data to display on the dashboard. This could be due to no recent trends being generated or other system activities. Please check back later.
+            Currently, there is no data to display on the dashboard. This could be due to no recent trends being generated or other system activities. Please check back later. If this persists, AI trend generation might be encountering issues.
           </AlertDescription>
         </Alert>
       )}
