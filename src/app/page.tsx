@@ -27,14 +27,14 @@ export default async function DashboardPage() {
       numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
     };
 
-    console.log("DashboardPage: Calling primeAiDataCache");
+    // console.log("DashboardPage: Calling primeAiDataCache");
     const primedData = await primeAiDataCache(trendInputParams);
     trends = primedData.trends;
     allOpportunities = primedData.opportunities;
-    console.log(`DashboardPage: Received ${trends.length} trends and ${allOpportunities.length} opportunity sets after priming.`);
+    // console.log(`DashboardPage: Received ${trends.length} trends and ${allOpportunities.length} opportunity sets after priming.`);
 
     if (!trends || trends.length === 0) {
-        console.log("DashboardPage: Priming returned no trends, attempting direct fetch.");
+        // console.log("DashboardPage: Priming returned no trends, attempting direct fetch.");
         trends = await generateAiTrendsCached(trendInputParams); 
         if (trends.length > 0 && allOpportunities.length === 0) {
              const opportunityPromises = trends.map(async (trend) => {
