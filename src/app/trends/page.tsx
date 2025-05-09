@@ -6,6 +6,7 @@ import { generateAiTrends, type GenerateAiTrendsInput } from '@/ai/flows/generat
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { cache } from 'react';
+import { DEFAULT_NUMBER_OF_TRENDS_TO_FETCH } from '@/lib/constants';
 
 // Cached version of AI flow function
 const generateAiTrendsCached = cache(generateAiTrends);
@@ -18,8 +19,8 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
   try {
     // Define input for the trend generation flow
     const trendInput: GenerateAiTrendsInput = {
-      timePeriod: "past week", // Or make this configurable
-      numberOfTrends: 3, // Or make this configurable
+      timePeriod: "past week", 
+      numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH, 
     };
     // Fetch trends using the cached Genkit flow
     const generatedTrends = await generateAiTrendsCached(trendInput);

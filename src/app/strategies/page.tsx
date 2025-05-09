@@ -10,6 +10,7 @@ import { suggestCapitalizationOpportunities } from '@/ai/flows/suggest-opportuni
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { cache } from 'react';
+import { DEFAULT_NUMBER_OF_TRENDS_TO_FETCH } from '@/lib/constants';
 
 // Cached versions of AI flow functions
 const generateAiTrendsCached = cache(generateAiTrends);
@@ -93,9 +94,10 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
         summary: trendFromParams.summary,
         category: trendFromParams.category,
         date: getCurrentWeekFormatted(), // Use current week for the strategy based on this trend
-        // Fill with minimal valid data for parts not directly used by mapOpportunitiesToStrategy or suggest...
         customerImpact: [], 
-        consultingPositioning: { strategicAdvice: "Strategy derived from specific trend data." }, 
+        consultingPositioning: { strategicAdvice: "Strategy derived from specific trend data." },
+        momentum: 0, // Add default or minimal valid momentum
+        marketSize: "N/A" // Add default or minimal valid marketSize
       };
       
       const opportunitiesInput = {
@@ -110,10 +112,10 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
       strategies = [mapOpportunitiesToStrategy(opportunitiesOutput, trendForStrategy)];
 
     } else {
-      // Fallback: Generate strategies for top N trends
+      // Fallback: Generate strategies for top N trends (consistent with other pages)
       const trendInput: GenerateAiTrendsInput = {
         timePeriod: "past week",
-        numberOfTrends: 3,
+        numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
       };
       const fetchedTrends = await generateAiTrendsCached(trendInput);
 
@@ -142,7 +144,7 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
 
   let displayedStrategies = strategies;
 
-  // General text query filtering - applies to either single strategy or list of N strategies
+  // General text query filtering
   if (searchParams?.query) {
     const query = searchParams.query.toLowerCase();
     displayedStrategies = displayedStrategies.filter(strategy =>
@@ -153,9 +155,7 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
     );
   }
   
-  // If not coming from a specific trendData, and an old trendId param is present (e.g. manual URL), try to filter the N general strategies
-  // This part is less reliable due to potential ID mismatches if trends aren't perfectly stable.
-  // The trendData path is preferred for direct navigation.
+  // Filter by trendId if provided (and not via trendData, which is more specific)
   if (!searchParams?.trendData && searchParams?.trendId) {
      displayedStrategies = displayedStrategies.filter(s => s.trendId === searchParams.trendId);
   }

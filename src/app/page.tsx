@@ -9,10 +9,10 @@ import { mockResources } from '@/lib/data'; // Using mock resources for now
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Lightbulb, Target, BookOpen, Terminal, AlertTriangle, ListChecks, Briefcase } from 'lucide-react';
 import { cache } from 'react';
+import { DEFAULT_NUMBER_OF_TRENDS_TO_FETCH } from '@/lib/constants';
 
 // Cached versions of AI flow functions
 const generateAiTrendsCached = cache(generateAiTrends);
@@ -21,30 +21,35 @@ const suggestCapitalizationOpportunitiesCached = cache(suggestCapitalizationOppo
 
 export default async function DashboardPage() {
   let trends: Trend[] = [];
-  let opportunities: SuggestCapitalizationOpportunitiesOutput | null = null;
+  let allOpportunities: { trendId: string; data: SuggestCapitalizationOpportunitiesOutput | null }[] = [];
   let featuredResources: LearningResource[] = [];
   let error: string | null = null;
   let isLoading = true;
 
   try {
-    // Fetch trends
+    // Fetch a consistent number of trends for the entire app
     const trendInput: GenerateAiTrendsInput = {
       timePeriod: "past week",
-      numberOfTrends: 3, // Fetch top 3 trends for the dashboard
+      numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
     };
     trends = await generateAiTrendsCached(trendInput);
 
     if (trends.length > 0) {
-      // Generate summary for opportunities flow
-      const aiTrendsSummary = trends
-        .map(t => `Trend Title: ${t.title}\nSummary: ${t.summary}\nCategory: ${t.category}\nCustomer Impact Highlights: ${t.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`)
-        .join('\n\n---\n\n');
-      
-      opportunities = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
+      // Generate opportunities for all fetched trends
+      const opportunityPromises = trends.map(async (trend) => {
+        const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
+        try {
+          const opportunityData = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
+          return { trendId: trend.id, data: opportunityData };
+        } catch (e) {
+          console.warn(`Failed to generate opportunities for trend ${trend.id}:`, e);
+          return { trendId: trend.id, data: null }; // Store null if an error occurs for this specific trend
+        }
+      });
+      allOpportunities = await Promise.all(opportunityPromises);
     }
 
     // Fetch featured resources (e.g., top 3 by rating or newest)
-    // For now, just taking the first 3 mock resources.
     featuredResources = mockResources.slice(0, 3);
 
   } catch (e) {
@@ -53,6 +58,10 @@ export default async function DashboardPage() {
   } finally {
     isLoading = false;
   }
+
+  // For display on dashboard, take the first opportunity that is successfully generated
+  const displayOpportunities = allOpportunities.find(op => op.data !== null)?.data ?? null;
+  const displayTrends = trends.slice(0, 3); // Display top 3 trends on dashboard
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-0">
@@ -80,7 +89,7 @@ export default async function DashboardPage() {
         </Alert>
       )}
 
-      {!isLoading && !error && trends.length === 0 && !opportunities && featuredResources.length === 0 && (
+      {!isLoading && !error && displayTrends.length === 0 && !displayOpportunities && featuredResources.length === 0 && (
          <Alert variant="default" className="my-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>No Data Available</AlertTitle>
@@ -96,11 +105,11 @@ export default async function DashboardPage() {
           title="Key AI Trends"
           icon={<Lightbulb className="h-5 w-5 text-primary" />}
           viewAllLink="/trends"
-          isLoading={isLoading && trends.length === 0}
+          isLoading={isLoading && displayTrends.length === 0}
         >
-          {trends.length > 0 ? (
+          {displayTrends.length > 0 ? (
             <ul className="space-y-3">
-              {trends.map(trend => (
+              {displayTrends.map(trend => (
                 <li key={trend.id}>
                   <Link href={`/trends?query=${encodeURIComponent(trend.title)}`} title={trend.summary} className="block font-medium text-foreground hover:text-primary transition-colors">
                     {trend.title}
@@ -121,36 +130,36 @@ export default async function DashboardPage() {
           title="Strategic Recommendations"
           icon={<Target className="h-5 w-5 text-primary" />}
           viewAllLink="/strategies"
-          isLoading={isLoading && !opportunities}
+          isLoading={isLoading && !displayOpportunities}
         >
-          {opportunities ? (
+          {displayOpportunities ? (
             <div className="space-y-4">
-              {opportunities.serviceOfferings && opportunities.serviceOfferings.length > 0 && (
+              {displayOpportunities.serviceOfferings && displayOpportunities.serviceOfferings.length > 0 && (
                 <div>
                   <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1 flex items-center">
                     <Briefcase className="h-3 w-3 mr-1.5" /> New Service Offerings
                   </h4>
                   <ul className="space-y-1 list-disc list-inside pl-1">
-                    {opportunities.serviceOfferings.slice(0, 2).map((offering, index) => ( // Show top 2
+                    {displayOpportunities.serviceOfferings.slice(0, 2).map((offering, index) => ( // Show top 2
                       <li key={`so-${index}`} className="text-sm text-foreground">{offering}</li>
                     ))}
                   </ul>
                 </div>
               )}
-              {opportunities.actionableSteps && opportunities.actionableSteps.length > 0 && (
+              {displayOpportunities.actionableSteps && displayOpportunities.actionableSteps.length > 0 && (
                  <div>
                   <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1 flex items-center">
                     <ListChecks className="h-3 w-3 mr-1.5" /> Key Actionable Steps
                   </h4>
                   <ul className="space-y-1 list-disc list-inside pl-1">
-                    {opportunities.actionableSteps.slice(0, 2).map((step, index) => ( // Show top 2
+                    {displayOpportunities.actionableSteps.slice(0, 2).map((step, index) => ( // Show top 2
                       <li key={`as-${index}`} className="text-sm text-foreground">{step}</li>
                     ))}
                   </ul>
                 </div>
               )}
-              {(!opportunities.serviceOfferings || opportunities.serviceOfferings.length === 0) && 
-               (!opportunities.actionableSteps || opportunities.actionableSteps.length === 0) && (
+              {(!displayOpportunities.serviceOfferings || displayOpportunities.serviceOfferings.length === 0) && 
+               (!displayOpportunities.actionableSteps || displayOpportunities.actionableSteps.length === 0) && (
                 <p className="text-sm text-muted-foreground">No specific strategic recommendations generated at this time.</p>
               )}
             </div>
