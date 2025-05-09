@@ -29,7 +29,7 @@ const SuggestCapitalizationOpportunitiesOutputSchema = z.object({
     .describe('Target client profiles or industries that are most receptive to these new trends.'),
   actionableSteps: z
     .array(z.string())
-    .describe('Initial, practical steps the team can take to capitalize on these opportunities.'),
+    .describe('Initial, practical steps the team can take to capitalize on these opportunities. Each step should be a complete sentence.'),
 });
 export type SuggestCapitalizationOpportunitiesOutput = z.infer<typeof SuggestCapitalizationOpportunitiesOutputSchema>;
 
@@ -43,9 +43,17 @@ const prompt = ai.definePrompt({
   name: 'suggestCapitalizationOpportunitiesPrompt',
   input: {schema: SuggestCapitalizationOpportunitiesInputSchema},
   output: {schema: SuggestCapitalizationOpportunitiesOutputSchema},
-  prompt: `You are a strategy consultant specializing in AI. Based on the following AI trends, suggest concrete recommendations for where and how our consulting company can capitalize.  Include service offering ideas, potential partnership opportunities, and target client profiles or industries.  Also, suggest initial, practical steps the team can take.
+  prompt: `You are a strategy consultant specializing in AI. Based on the following AI trends, suggest concrete recommendations for where and how our consulting company can capitalize.
+Include the following sections:
+1.  Service Offering Ideas: List specific new services the company could offer.
+2.  Potential Partnership Opportunities: Identify types of partners and the rationale for partnering.
+3.  Target Client Profiles or Industries: Describe the ideal customers or sectors to focus on.
+4.  Actionable Steps: Suggest initial, practical steps the team can take. Ensure each actionable step is a complete, concise, and well-formed sentence providing a clear action.
 
-AI Trends: {{{aiTrends}}}`,
+AI Trends:
+{{{aiTrends}}}
+
+Provide the output in the specified JSON format.`,
 });
 
 const suggestCapitalizationOpportunitiesFlow = ai.defineFlow(
