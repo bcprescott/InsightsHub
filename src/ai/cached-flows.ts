@@ -12,23 +12,30 @@ import {
   type SuggestCapitalizationOpportunitiesInput,
   type SuggestCapitalizationOpportunitiesOutput,
 } from '@/ai/flows/suggest-opportunities';
+import {
+  generateLearningResources as originalGenerateLearningResources,
+  type GenerateLearningResourcesInput,
+  type GenerateLearningResourcesOutput,
+} from '@/ai/flows/generate-learning-resources-flow';
+import type { LearningResource } from '@/types/zodSchemas';
+
 
 // Simple in-memory cache store
 interface CacheStore {
   trends?: { input: GenerateAiTrendsInput; output: GenerateAiTrendsOutput; timestamp: number };
   opportunities?: Map<string, { input: SuggestCapitalizationOpportunitiesInput; output: SuggestCapitalizationOpportunitiesOutput; timestamp: number }>;
+  resources?: Map<string, { input: GenerateLearningResourcesInput; output: GenerateLearningResourcesOutput; timestamp: number }>;
 }
 
 const globalCache: CacheStore = {
   opportunities: new Map(),
+  resources: new Map(),
 };
-// Cache duration: 1 hour. For weekly trends, this could be longer.
+// Cache duration: 1 hour. For daily trends, this could be shorter for frequent updates or longer if daily generation is sufficient.
 const CACHE_DURATION_MS = 60 * 60 * 1000; 
 
 /**
  * Cached version of the generateAiTrends flow.
- * Uses a simple in-memory cache that persists across requests on the same server instance.
- * React.cache is still used for deduplication within a single render pass.
  */
 export const generateAiTrendsCached = cache(
   async (input: GenerateAiTrendsInput): Promise<GenerateAiTrendsOutput> => {
@@ -45,22 +52,20 @@ export const generateAiTrendsCached = cache(
     console.log('Fetching new trends from AI for generateAiTrendsCached');
     const output = await originalGenerateAiTrends(input);
     globalCache.trends = { input, output, timestamp: now };
-    // Clear opportunities cache as trends have been updated
+    // Clear opportunities and resources cache as trends have been updated
     globalCache.opportunities = new Map(); 
-    console.log('Trends fetched and opportunities cache cleared.');
+    globalCache.resources = new Map();
+    console.log('Trends fetched. Opportunities and resources cache cleared.');
     return output;
   }
 );
 
 /**
  * Cached version of the suggestCapitalizationOpportunities flow.
- * Uses a simple in-memory cache that persists across requests on the same server instance.
- * React.cache is still used for deduplication within a single render pass.
  */
 export const suggestCapitalizationOpportunitiesCached = cache(
   async (input: SuggestCapitalizationOpportunitiesInput): Promise<SuggestCapitalizationOpportunitiesOutput> => {
     const now = Date.now();
-    // Create a stable cache key. Consider hashing if input gets very large or complex.
     const cacheKey = JSON.stringify(input.aiTrends); 
 
     const cachedEntry = globalCache.opportunities?.get(cacheKey);
@@ -80,40 +85,102 @@ export const suggestCapitalizationOpportunitiesCached = cache(
   }
 );
 
+/**
+ * Cached version of the generateLearningResources flow.
+ */
+export const generateLearningResourcesCached = cache(
+  async (input: GenerateLearningResourcesInput): Promise<GenerateLearningResourcesOutput> => {
+    const now = Date.now();
+    const cacheKey = JSON.stringify({ trendTitle: input.trendTitle, trendSummary: input.trendSummary }); // Cache based on trend content
+
+    const cachedEntry = globalCache.resources?.get(cacheKey);
+    if (
+      cachedEntry &&
+      JSON.stringify(cachedEntry.input.trendTitle) === JSON.stringify(input.trendTitle) && // Be more specific with comparison
+      JSON.stringify(cachedEntry.input.trendSummary) === JSON.stringify(input.trendSummary) &&
+      (now - cachedEntry.timestamp) < CACHE_DURATION_MS
+    ) {
+      console.log(`Serving learning resources for trend '${input.trendTitle}' from global cache`);
+      return cachedEntry.output;
+    }
+
+    console.log(`Fetching new learning resources from AI for trend '${input.trendTitle}'`);
+    const output = await originalGenerateLearningResources(input);
+    globalCache.resources?.set(cacheKey, { input, output, timestamp: now });
+    return output;
+  }
+);
+
 
 /**
- * Primes the AI data cache by fetching trends and their corresponding opportunities.
+ * Primes the AI data cache by fetching trends, their corresponding opportunities, and relevant learning resources.
  * This function is intended to be called once on initial application load (e.g., from the dashboard page).
  */
 export async function primeAiDataCache(
   trendsInput: GenerateAiTrendsInput
-): Promise<{ trends: GenerateAiTrendsOutput; opportunities: Array<{ trendId: string; data: SuggestCapitalizationOpportunitiesOutput | null }> }> {
+): Promise<{ 
+  trends: GenerateAiTrendsOutput; 
+  opportunities: Array<{ trendId: string; data: SuggestCapitalizationOpportunitiesOutput | null }>;
+  resources: LearningResource[]; // Changed to be a flat array of all resources
+}> {
   console.log('Attempting to prime AI Data Cache...');
   
-  // Fetch trends. This will use generateAiTrendsCached, which checks/updates the global cache.
   const trends = await generateAiTrendsCached(trendsInput);
   let allOpportunities: Array<{ trendId: string; data: SuggestCapitalizationOpportunitiesOutput | null }> = [];
+  let allLearningResources: LearningResource[] = [];
 
   if (trends && trends.length > 0) {
-    console.log(`Cache primed with ${trends.length} trends. Now fetching opportunities...`);
-    const opportunityPromises = trends.map(async (trend) => {
-      // Construct a consistent summary for caching and fetching.
-      const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
+    console.log(`Cache primed with ${trends.length} trends. Now fetching opportunities and resources...`);
+    
+    const processingPromises = trends.map(async (trend) => {
+      // Prepare inputs for opportunities and resources
+      const aiTrendsSummaryForOpportunities = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
+      const learningResourcesInput: GenerateLearningResourcesInput = {
+        trendTitle: trend.title,
+        trendSummary: trend.summary,
+        trendCategory: trend.category,
+        numberOfResources: 2, // Fetch 2 resources per trend for the dashboard display
+      };
+
+      let opportunityData: SuggestCapitalizationOpportunitiesOutput | null = null;
+      let resourcesData: LearningResource[] | null = null;
+
       try {
-        // Fetch opportunities. This uses suggestCapitalizationOpportunitiesCached.
-        const opportunityData = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
-        return { trendId: trend.id, data: opportunityData };
+        opportunityData = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummaryForOpportunities });
       } catch (e) {
         console.warn(`Failed to generate opportunities for trend ${trend.id} during cache priming:`, e);
-        return { trendId: trend.id, data: null }; // Store null if an error occurs for a specific trend
+      }
+
+      try {
+        const generatedResources = await generateLearningResourcesCached(learningResourcesInput);
+        // Add trendId to each resource
+        resourcesData = generatedResources.map(res => ({ ...res, trendId: trend.id }));
+      } catch (e) {
+        console.warn(`Failed to generate learning resources for trend ${trend.id} during cache priming:`, e);
+      }
+      
+      return { 
+        opportunity: { trendId: trend.id, data: opportunityData }, 
+        resources: resourcesData 
+      };
+    });
+
+    const results = await Promise.all(processingPromises);
+
+    allOpportunities = results.map(r => r.opportunity);
+    results.forEach(r => {
+      if (r.resources) {
+        allLearningResources.push(...r.resources);
       }
     });
-    allOpportunities = await Promise.all(opportunityPromises);
+    
     console.log(`Opportunities fetched for ${allOpportunities.filter(op => op.data !== null).length} trends.`);
+    console.log(`Learning resources fetched: ${allLearningResources.length} total resources.`);
+
   } else {
-    console.log('No trends found to prime opportunities cache.');
+    console.log('No trends found to prime opportunities and resources cache.');
   }
   
   console.log('AI Data Cache priming process complete.');
-  return { trends, opportunities: allOpportunities };
+  return { trends, opportunities: allOpportunities, resources: allLearningResources };
 }

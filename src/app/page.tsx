@@ -1,12 +1,12 @@
 
 
 
-import type { Trend, LearningResource } from '@/types';
+
+import type { Trend, LearningResource } from '@/types/zodSchemas'; // Ensure using zodSchemas version
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
 
-import { primeAiDataCache, generateAiTrendsCached, suggestCapitalizationOpportunitiesCached } from '@/ai/cached-flows'; 
-import { mockResources } from '@/lib/data'; 
+import { primeAiDataCache, generateAiTrendsCached, suggestCapitalizationOpportunitiesCached, generateLearningResourcesCached } from '@/ai/cached-flows'; 
 
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
@@ -20,7 +20,7 @@ import React from 'react';
 export default async function DashboardPage() {
   let trends: Trend[] = [];
   let allOpportunities: { trendId: string; data: SuggestCapitalizationOpportunitiesOutput | null }[] = [];
-  let featuredResources: LearningResource[] = [];
+  let dynamicallyGeneratedResources: LearningResource[] = [];
   let error: string | null = null;
 
   try {
@@ -32,25 +32,47 @@ export default async function DashboardPage() {
     const primedData = await primeAiDataCache(trendInputParams);
     trends = primedData.trends;
     allOpportunities = primedData.opportunities;
+    dynamicallyGeneratedResources = primedData.resources;
     
-    if (!trends || trends.length === 0) {
+    // Fallback if priming didn't fully populate
+    if ((!trends || trends.length === 0) && DEFAULT_NUMBER_OF_TRENDS_TO_FETCH > 0) {
+        console.log("DashboardPage: Priming seems to have missed trends, attempting direct fetch.");
         trends = await generateAiTrendsCached(trendInputParams); 
-        if (trends.length > 0 && allOpportunities.length === 0) {
-             const opportunityPromises = trends.map(async (trend) => {
-                const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
-                try {
-                const opportunityData = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
-                return { trendId: trend.id, data: opportunityData };
-                } catch (e) {
-                console.warn(`DashboardPage: Fallback - Failed to generate opportunities for trend ${trend.id}:`, e);
-                return { trendId: trend.id, data: null };
-                }
-            });
-            allOpportunities = await Promise.all(opportunityPromises);
+        if (trends.length > 0) {
+            if (allOpportunities.length === 0) {
+                const opportunityPromises = trends.map(async (trend) => {
+                    const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
+                    try {
+                        const opportunityData = await suggestCapitalizationOpportunitiesCached({ aiTrends: aiTrendsSummary });
+                        return { trendId: trend.id, data: opportunityData };
+                    } catch (e) {
+                        console.warn(`DashboardPage: Fallback - Failed to generate opportunities for trend ${trend.id}:`, e);
+                        return { trendId: trend.id, data: null };
+                    }
+                });
+                allOpportunities = await Promise.all(opportunityPromises);
+            }
+            if (dynamicallyGeneratedResources.length === 0) {
+                 const resourcePromises = trends.map(async (trend) => {
+                    try {
+                        const resources = await generateLearningResourcesCached({
+                            trendTitle: trend.title,
+                            trendSummary: trend.summary,
+                            trendCategory: trend.category,
+                            numberOfResources: 1, // Fetch 1 resource per trend for dashboard fallback
+                        });
+                        return resources.map(res => ({ ...res, trendId: trend.id }));
+                    } catch (e) {
+                        console.warn(`DashboardPage: Fallback - Failed to generate resources for trend ${trend.id}:`, e);
+                        return [];
+                    }
+                });
+                const nestedResources = await Promise.all(resourcePromises);
+                dynamicallyGeneratedResources = nestedResources.flat();
+            }
         }
     }
 
-    featuredResources = mockResources.slice(0, 3);
 
   } catch (e) {
     console.error("DashboardPage: Failed to load dashboard data:", e);
@@ -59,6 +81,7 @@ export default async function DashboardPage() {
 
   const displayOpportunities = allOpportunities.find(op => op.data !== null)?.data ?? null;
   const displayTrends = trends.slice(0, DEFAULT_NUMBER_OF_TRENDS_TO_FETCH);
+  const featuredResources = dynamicallyGeneratedResources.slice(0, 3); // Show top 3 overall generated resources
 
   return (
     <div className="w-full max-w-screen-xl pt-0 pb-8">
@@ -166,14 +189,14 @@ export default async function DashboardPage() {
             <ul className="space-y-2">
               {featuredResources.map(resource => (
                 <li key={resource.id} className="text-sm text-foreground hover:text-primary transition-colors">
-                  <Link href={resource.url} target="_blank" rel="noopener noreferrer" title={resource.summary || resource.title}>
+                   <Link href={resource.url} target="_blank" rel="noopener noreferrer" title={resource.summary || resource.title}>
                     {resource.title} <span className="text-xs text-muted-foreground">({resource.type})</span>
                   </Link>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">No featured learning resources to display.</p>
+            <p className="text-sm text-muted-foreground">No featured learning resources generated for today's trends.</p>
           )}
         </DashboardSection>
       </div>

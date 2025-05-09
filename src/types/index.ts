@@ -1,25 +1,22 @@
 
-export interface Trend {
-  id: string;
-  title: string;
-  summary: string;
-  category: string; // e.g., "Generative AI", "LLM Optimization", "AI Ethics"
-  date: string; // Date of analysis, YYYY-MM-DD
-  customerImpact: {
-    industry: string;
-    impactAnalysis: string;
-  }[];
-  consultingPositioning: {
-    strategicAdvice: string;
-    newServices?: string[];
-    adaptedServices?: string[];
-    talkingPoints?: string[];
-    risksOrLimitations?: string[];
-  };
-  momentum?: number; // Optional: for charts, e.g., 0-100. Made explicitly optional.
-  marketSize?: string; // Optional: for charts, e.g., "$10B". Made explicitly optional.
-}
+// This file can be deprecated or used for non-Zod types if all primary data types are defined in zodSchemas.ts
+// For now, let's ensure it re-exports types from zodSchemas.ts or aligns with them.
 
+// Re-exporting from zodSchemas to maintain a single source of truth for these types
+export type { 
+    Trend, 
+    CustomerImpact, 
+    ConsultingPositioning, 
+    LearningResource // Ensure LearningResource is exported
+} from './zodSchemas';
+
+
+// If you had other types here not covered by Zod schemas, they would remain.
+// For example:
+// export interface UserProfile { ... }
+
+// CapitalizationStrategy is not in Zod currently, so it remains here.
+// Consider moving to Zod if it's used in Genkit flows or needs stricter validation.
 export interface CapitalizationStrategy {
   id: string;
   trendId: string; // Links to a specific trend
@@ -44,21 +41,4 @@ export interface CapitalizationStrategy {
     priority: 'High' | 'Medium' | 'Low';
   }[];
   date: string; // Date of strategy generation, YYYY-MM-DD
-}
-
-export interface LearningResource {
-  id: string;
-  trendId?: string; // Optional: links to a specific trend
-  title: string;
-  type: 'Paper' | 'Article' | 'Course' | 'Tool' | 'Thought Leader' | 'Video';
-  url: string;
-  authors?: string[];
-  publicationDate?: string;
-  summary?: string;
-  source?: string; // e.g., "arXiv", "Harvard Business Review", "Coursera"
-  isFree?: boolean;
-  timeCommitment?: string; // e.g., "2 hours read", "10-week course"
-  skillLevel?: 'Beginner' | 'Intermediate' | 'Advanced';
-  rating?: number; // 1-5 stars (display only)
-  tags: string[]; // e.g., "Generative AI", "NLP", "Deep Learning"
 }
