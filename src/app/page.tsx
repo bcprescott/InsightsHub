@@ -93,12 +93,15 @@ export default async function DashboardPage() {
           isLoading={isLoading && trends.length === 0}
         >
           {trends.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {trends.map(trend => (
-                <li key={trend.id} className="text-sm text-foreground hover:text-primary transition-colors">
-                  <Link href={`/trends?query=${encodeURIComponent(trend.title)}`} title={trend.summary}>
+                <li key={trend.id}>
+                  <Link href={`/trends?query=${encodeURIComponent(trend.title)}`} title={trend.summary} className="block font-medium text-foreground hover:text-primary transition-colors">
                     {trend.title}
                   </Link>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {trend.summary.substring(0, 150)}{trend.summary.length > 150 ? '...' : ''}
+                  </p>
                 </li>
               ))}
             </ul>
@@ -122,7 +125,7 @@ export default async function DashboardPage() {
                     <Briefcase className="h-3 w-3 mr-1.5" /> New Service Offerings
                   </h4>
                   <ul className="space-y-1 list-disc list-inside pl-1">
-                    {opportunities.serviceOfferings.slice(0, 3).map((offering, index) => (
+                    {opportunities.serviceOfferings.slice(0, 2).map((offering, index) => ( // Show top 2
                       <li key={`so-${index}`} className="text-sm text-foreground">{offering}</li>
                     ))}
                   </ul>
@@ -134,7 +137,7 @@ export default async function DashboardPage() {
                     <ListChecks className="h-3 w-3 mr-1.5" /> Key Actionable Steps
                   </h4>
                   <ul className="space-y-1 list-disc list-inside pl-1">
-                    {opportunities.actionableSteps.slice(0, 3).map((step, index) => (
+                    {opportunities.actionableSteps.slice(0, 2).map((step, index) => ( // Show top 2
                       <li key={`as-${index}`} className="text-sm text-foreground">{step}</li>
                     ))}
                   </ul>
