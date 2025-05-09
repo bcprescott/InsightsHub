@@ -2,9 +2,8 @@ import type { Trend, LearningResource } from '@/types';
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
 
-import { generateAiTrends } from '@/ai/flows/generate-ai-trends-flow';
-import { suggestCapitalizationOpportunities } from '@/ai/flows/suggest-opportunities';
-import { mockResources } from '@/lib/data'; // Using mock resources for now
+import { generateAiTrendsCached, suggestCapitalizationOpportunitiesCached } from '@/ai/cached-flows'; // Updated import
+import { mockResources } from '@/lib/data'; 
 
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
@@ -12,23 +11,18 @@ import { LoadingOverlay } from '@/components/shared/LoadingOverlay';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Lightbulb, Target, BookOpen, Terminal, AlertTriangle, ListChecks, Briefcase } from 'lucide-react';
-import { cache } from 'react';
 import { DEFAULT_NUMBER_OF_TRENDS_TO_FETCH } from '@/lib/constants';
-
-// Cached versions of AI flow functions
-const generateAiTrendsCached = cache(generateAiTrends);
-const suggestCapitalizationOpportunitiesCached = cache(suggestCapitalizationOpportunities);
+import React from 'react';
 
 
 export default async function DashboardPage() {
+  // isLoading state is managed by Suspense and the LoadingOverlay component directly
   let trends: Trend[] = [];
   let allOpportunities: { trendId: string; data: SuggestCapitalizationOpportunitiesOutput | null }[] = [];
   let featuredResources: LearningResource[] = [];
   let error: string | null = null;
-  let isLoading = true;
 
   try {
-    // Fetch a consistent number of trends for the entire app
     const trendInput: GenerateAiTrendsInput = {
       timePeriod: "past week",
       numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
@@ -36,7 +30,6 @@ export default async function DashboardPage() {
     trends = await generateAiTrendsCached(trendInput);
 
     if (trends.length > 0) {
-      // Generate opportunities for all fetched trends
       const opportunityPromises = trends.map(async (trend) => {
         const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
         try {
@@ -44,36 +37,33 @@ export default async function DashboardPage() {
           return { trendId: trend.id, data: opportunityData };
         } catch (e) {
           console.warn(`Failed to generate opportunities for trend ${trend.id}:`, e);
-          return { trendId: trend.id, data: null }; // Store null if an error occurs for this specific trend
+          return { trendId: trend.id, data: null };
         }
       });
       allOpportunities = await Promise.all(opportunityPromises);
     }
 
-    // Fetch featured resources (e.g., top 3 by rating or newest)
     featuredResources = mockResources.slice(0, 3);
 
   } catch (e) {
     console.error("Failed to load dashboard data:", e);
     error = e instanceof Error ? e.message : "An unknown error occurred while fetching dashboard data.";
-  } finally {
-    isLoading = false;
   }
 
-  // For display on dashboard, take the first opportunity that is successfully generated
   const displayOpportunities = allOpportunities.find(op => op.data !== null)?.data ?? null;
-  const displayTrends = trends.slice(0, 3); // Display top 3 trends on dashboard
+  const displayTrends = trends.slice(0, 3);
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-0">
-      <LoadingOverlay isLoading={isLoading} message="Generating AI insights... Please wait." />
+      {/* LoadingOverlay is now triggered via Suspense in layout/page structure if needed, or handled per section */}
+      {/* For a page-wide initial load, Suspense in layout is preferred. Here, we show errors or no data states. */}
 
       <SectionHeader
         title="AI Insights Hub Dashboard"
         description="Your central overview of the latest AI intelligence, strategic recommendations, and learning resources."
       />
 
-      {!isLoading && error && (
+      {error && (
         <Alert variant="destructive" className="my-6">
           <Terminal className="h-4 w-4" />
           <AlertTitle>Error Loading Dashboard</AlertTitle>
@@ -85,7 +75,7 @@ export default async function DashboardPage() {
         </Alert>
       )}
 
-      {!isLoading && !error && displayTrends.length === 0 && !displayOpportunities && featuredResources.length === 0 && (
+      {!error && displayTrends.length === 0 && !displayOpportunities && featuredResources.length === 0 && (
          <Alert variant="default" className="my-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>No Data Available</AlertTitle>
@@ -96,12 +86,11 @@ export default async function DashboardPage() {
       )}
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3">
-        {/* Key AI Trends Section */}
         <DashboardSection
           title="Key AI Trends"
           icon={<Lightbulb className="h-5 w-5 text-primary" />}
           viewAllLink="/trends"
-          isLoading={isLoading && displayTrends.length === 0}
+          isLoading={false} // Data is pre-loaded or error handled above
         >
           {displayTrends.length > 0 ? (
             <ul className="space-y-3">
@@ -117,16 +106,15 @@ export default async function DashboardPage() {
               ))}
             </ul>
           ) : (
-            !isLoading && <p className="text-sm text-muted-foreground">No key AI trends identified for the past week.</p>
+            <p className="text-sm text-muted-foreground">No key AI trends identified for the past week.</p>
           )}
         </DashboardSection>
 
-        {/* Strategic Recommendations Section */}
         <DashboardSection
           title="Strategic Recommendations"
           icon={<Target className="h-5 w-5 text-primary" />}
           viewAllLink="/strategies"
-          isLoading={isLoading && !displayOpportunities}
+          isLoading={false}
         >
           {displayOpportunities ? (
             <div className="space-y-4">
@@ -136,7 +124,7 @@ export default async function DashboardPage() {
                     <Briefcase className="h-3 w-3 mr-1.5" /> New Service Offerings
                   </h4>
                   <ul className="space-y-1 list-disc list-inside pl-1">
-                    {displayOpportunities.serviceOfferings.slice(0, 2).map((offering, index) => ( // Show top 2
+                    {displayOpportunities.serviceOfferings.slice(0, 2).map((offering, index) => (
                       <li key={`so-${index}`} className="text-sm text-foreground">{offering}</li>
                     ))}
                   </ul>
@@ -148,7 +136,7 @@ export default async function DashboardPage() {
                     <ListChecks className="h-3 w-3 mr-1.5" /> Key Actionable Steps
                   </h4>
                   <ul className="space-y-1 list-disc list-inside pl-1">
-                    {displayOpportunities.actionableSteps.slice(0, 2).map((step, index) => ( // Show top 2
+                    {displayOpportunities.actionableSteps.slice(0, 2).map((step, index) => (
                       <li key={`as-${index}`} className="text-sm text-foreground">{step}</li>
                     ))}
                   </ul>
@@ -160,16 +148,15 @@ export default async function DashboardPage() {
               )}
             </div>
           ) : (
-            !isLoading && <p className="text-sm text-muted-foreground">No strategic recommendations available currently.</p>
+            <p className="text-sm text-muted-foreground">No strategic recommendations available currently.</p>
           )}
         </DashboardSection>
 
-        {/* Featured Learning Resources Section */}
         <DashboardSection
           title="Featured Learning Resources"
           icon={<BookOpen className="h-5 w-5 text-primary" />}
           viewAllLink="/resources"
-          isLoading={isLoading && featuredResources.length === 0}
+          isLoading={false} 
         >
           {featuredResources.length > 0 ? (
             <ul className="space-y-2">
@@ -182,7 +169,7 @@ export default async function DashboardPage() {
               ))}
             </ul>
           ) : (
-            !isLoading && <p className="text-sm text-muted-foreground">No featured learning resources to display.</p>
+            <p className="text-sm text-muted-foreground">No featured learning resources to display.</p>
           )}
         </DashboardSection>
       </div>

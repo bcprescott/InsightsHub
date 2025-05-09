@@ -2,43 +2,36 @@ import { SectionHeader } from '@/components/shared/SectionHeader';
 import { SearchBar } from '@/components/shared/SearchBar';
 import { TrendCard } from '@/components/trends/TrendCard';
 import type { Trend } from '@/types';
-import { generateAiTrends, type GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
+import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
+import { generateAiTrendsCached } from '@/ai/cached-flows'; // Updated import
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
-import { cache } from 'react';
 import { DEFAULT_NUMBER_OF_TRENDS_TO_FETCH } from '@/lib/constants';
-
-// Cached version of AI flow function
-const generateAiTrendsCached = cache(generateAiTrends);
 
 export default async function TrendsPage({ searchParams }: { searchParams?: { query?: string }}) {
   let trends: Trend[] = [];
   let error: string | null = null;
-  let isLoading = true; // Start with loading true
+  let isLoading = true; 
 
   try {
-    // Define input for the trend generation flow
     const trendInput: GenerateAiTrendsInput = {
       timePeriod: "past week", 
       numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH, 
     };
-    // Fetch trends using the cached Genkit flow
     const generatedTrends = await generateAiTrendsCached(trendInput);
-    
     trends = generatedTrends as Trend[]; 
-
   } catch (e) {
     console.error("Failed to fetch AI trends:", e);
     error = e instanceof Error ? e.message : "An unknown error occurred while fetching trends.";
-    trends = []; // Ensure trends is an empty array on error
+    trends = []; 
   } finally {
-    isLoading = false; // Set loading to false after attempt
+    isLoading = false; 
   }
   
-
+  let displayedTrends = trends;
   if (searchParams?.query) {
     const query = searchParams.query.toLowerCase();
-    trends = trends.filter(trend => 
+    displayedTrends = trends.filter(trend => 
       trend.title.toLowerCase().includes(query) ||
       trend.summary.toLowerCase().includes(query) ||
       trend.category.toLowerCase().includes(query) ||
@@ -73,16 +66,16 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
         </Alert>
       )}
 
-      {!isLoading && !error && trends.length === 0 && (
+      {!isLoading && !error && displayedTrends.length === 0 && (
         <div className="text-center py-10">
           <p className="text-lg text-muted-foreground">No AI trends found matching your criteria or generated for the past week.</p>
           <p className="text-sm text-muted-foreground">Please try different keywords, clear the search, or check back later.</p>
         </div>
       )}
 
-      {!isLoading && !error && trends.length > 0 && (
+      {!isLoading && !error && displayedTrends.length > 0 && (
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2">
-          {trends.map((trend) => (
+          {displayedTrends.map((trend) => (
             <TrendCard key={trend.id} trend={trend} />
           ))}
         </div>

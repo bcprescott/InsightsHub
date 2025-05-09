@@ -5,17 +5,10 @@ import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { SearchBar } from '@/components/shared/SearchBar';
 import { StrategyCard } from '@/components/strategies/StrategyCard';
-import { generateAiTrends } from '@/ai/flows/generate-ai-trends-flow';
-import { suggestCapitalizationOpportunities } from '@/ai/flows/suggest-opportunities';
+import { generateAiTrendsCached, suggestCapitalizationOpportunitiesCached } from '@/ai/cached-flows'; // Updated import
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
-import { cache } from 'react';
 import { DEFAULT_NUMBER_OF_TRENDS_TO_FETCH } from '@/lib/constants';
-
-// Cached versions of AI flow functions
-const generateAiTrendsCached = cache(generateAiTrends);
-const suggestCapitalizationOpportunitiesCached = cache(suggestCapitalizationOpportunities);
-
 
 // Helper function to get current week in YYYY-Www format
 const getCurrentWeekFormatted = (): string => {
@@ -23,12 +16,11 @@ const getCurrentWeekFormatted = (): string => {
   const year = now.getFullYear();
   const startOfYear = new Date(year, 0, 1);
   const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-  const dayOfWeek = (startOfYear.getDay() + 6) % 7; // 0 for Monday, 1 for Tuesday .. 6 for Sunday (ISO 8601)
+  const dayOfWeek = (startOfYear.getDay() + 6) % 7; 
   const weekNumber = Math.ceil((days + dayOfWeek + 1) / 7);
   return `${year}-W${String(weekNumber).padStart(2, '0')}`;
 };
 
-// Helper function to map SuggestCapitalizationOpportunitiesOutput to CapitalizationStrategy
 const mapOpportunitiesToStrategy = (
   opportunities: SuggestCapitalizationOpportunitiesOutput | null,
   trend: Trend 
@@ -38,12 +30,9 @@ const mapOpportunitiesToStrategy = (
       id: `strategy-failed-${trend.id}`,
       trendId: trend.id,
       title: `Strategy Generation Failed for: ${trend.title}`,
-      description: `Could not generate a capitalization strategy for the AI trend titled "${trend.title}". This may be due to an issue with the AI model or the input data.`,
+      description: `Could not generate a capitalization strategy for the AI trend titled "${trend.title}".`,
       date: trend.date,
       actionableSteps: [{ step: "Review trend and attempt strategy regeneration if applicable.", priority: 'High' }],
-      newServiceOffering: undefined,
-      partnershipOpportunities: [],
-      targetClients: [],
     };
   }
 
@@ -51,7 +40,7 @@ const mapOpportunitiesToStrategy = (
     id: `strategy-${trend.id}`,
     trendId: trend.id,
     title: `Capitalization Strategy for: ${trend.title}`,
-    description: `Strategic recommendations to capitalize on the AI trend titled "${trend.title}". This strategy explores potential new services, partnerships, target clients, and actionable steps.`,
+    description: `Strategic recommendations to capitalize on the AI trend titled "${trend.title}".`,
     date: trend.date,
     newServiceOffering: opportunities.serviceOfferings && opportunities.serviceOfferings.length > 0
       ? {
@@ -71,8 +60,8 @@ const mapOpportunitiesToStrategy = (
     })) || [],
     actionableSteps: opportunities.actionableSteps?.map(step => ({
       step: step,
-      priority: 'Medium',
-    })) || [{ step: 'Define specific actionable steps based on the generated opportunities.', priority: 'Medium' }],
+      priority: 'Medium', 
+    })) || [{ step: 'Define specific actionable steps.', priority: 'Medium' }],
   };
 };
 
@@ -85,21 +74,15 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
 
   try {
     if (searchParams?.trendData) {
-      // Generate strategy for a single trend passed in trendData
       const trendFromParams: TrendDataFromUrl = JSON.parse(decodeURIComponent(searchParams.trendData));
-      
       const trendForStrategy: Trend = {
-        id: trendFromParams.id,
-        title: trendFromParams.title,
-        summary: trendFromParams.summary,
-        category: trendFromParams.category,
-        date: getCurrentWeekFormatted(), // Use current week for the strategy based on this trend
+        ...trendFromParams,
+        date: getCurrentWeekFormatted(),
         customerImpact: [], 
         consultingPositioning: { strategicAdvice: "Strategy derived from specific trend data." },
-        momentum: 0, // Add default or minimal valid momentum
-        marketSize: "N/A" // Add default or minimal valid marketSize
+        momentum: 0, 
+        marketSize: "N/A" 
       };
-      
       const opportunitiesInput = {
         aiTrends: `Trend Title: ${trendForStrategy.title}\nSummary: ${trendForStrategy.summary}\nCategory: ${trendForStrategy.category}`,
       };
@@ -110,9 +93,7 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
         console.warn(`Failed to generate strategy for specific trend "${trendForStrategy.title}":`, oppError);
       }
       strategies = [mapOpportunitiesToStrategy(opportunitiesOutput, trendForStrategy)];
-
     } else {
-      // Fallback: Generate strategies for top N trends (consistent with other pages)
       const trendInput: GenerateAiTrendsInput = {
         timePeriod: "past week",
         numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
@@ -144,7 +125,6 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
 
   let displayedStrategies = strategies;
 
-  // General text query filtering
   if (searchParams?.query) {
     const query = searchParams.query.toLowerCase();
     displayedStrategies = displayedStrategies.filter(strategy =>
@@ -155,7 +135,6 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
     );
   }
   
-  // Filter by trendId if provided (and not via trendData, which is more specific)
   if (!searchParams?.trendData && searchParams?.trendId) {
      displayedStrategies = displayedStrategies.filter(s => s.trendId === searchParams.trendId);
   }
@@ -180,7 +159,7 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
           <Terminal className="h-4 w-4" />
           <AlertTitle>Error Generating Strategies</AlertTitle>
           <AlertDescription>
-            Could not generate all capitalization strategies at this time. Some information may be incomplete. Please try again later.
+            Could not generate all capitalization strategies at this time. Some information may be incomplete.
             <br />
             <span className="text-xs">Details: {error}</span>
           </AlertDescription>
@@ -191,8 +170,8 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
         <div className="text-center py-10">
           <p className="text-lg text-muted-foreground">No capitalization strategies found or generated.</p>
           {searchParams?.query && <p className="text-sm text-muted-foreground">Try different keywords or clear the search.</p>}
-          {searchParams?.trendId && !searchParams?.trendData && <p className="text-sm text-muted-foreground">No strategy matched the specified trend ID from the generally generated strategies.</p>}
-          {!searchParams?.query && !searchParams?.trendId && !searchParams?.trendData && <p className="text-sm text-muted-foreground">This may be because no AI trends were identified or strategies could not be generated for them.</p>}
+          {searchParams?.trendId && !searchParams?.trendData && <p className="text-sm text-muted-foreground">No strategy matched the specified trend ID.</p>}
+          {!searchParams?.query && !searchParams?.trendId && !searchParams?.trendData && <p className="text-sm text-muted-foreground">No AI trends identified or strategies could be generated.</p>}
         </div>
       )}
 
