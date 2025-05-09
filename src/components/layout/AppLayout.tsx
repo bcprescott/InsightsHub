@@ -1,3 +1,4 @@
+
 import type { ReactNode } from 'react';
 import {
   Sidebar,
@@ -8,6 +9,7 @@ import {
 import { SidebarNav } from './SidebarNav';
 import { AppHeader } from './AppHeader';
 import { Logo } from './Logo';
+import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -15,7 +17,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    <div className="flex min-h-screen w-full bg-muted/40"> {/* Changed flex-col to flex (default flex-row) */}
       <Sidebar variant="sidebar" collapsible="icon" side="left">
         <ShadcnSidebarHeader className="p-4 border-b border-sidebar-border">
           <Logo />
@@ -24,8 +26,16 @@ export function AppLayout({ children }: AppLayoutProps) {
           <SidebarNav />
         </SidebarContent>
       </Sidebar>
-      <div className="flex flex-1 flex-col sm:gap-4 sm:pl-14 group-data-[collapsible=icon]:sm:pl-[calc(var(--sidebar-width-icon)_+_1rem)] md:group-data-[collapsible=icon]:sm:pl-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))] transition-[padding-left] duration-200 ease-linear">
+      {/* Main content column that adapts to sidebar state */}
+      <div 
+        className={cn(
+          "flex flex-1 flex-col sm:gap-4 transition-[padding-left] duration-300 ease-in-out",
+          "sm:peer-data-[state=expanded]:pl-[var(--sidebar-width)]", // Padding when sidebar is expanded
+          "sm:peer-data-[state=collapsed]:peer-data-[collapsible=icon]:pl-[var(--sidebar-width-icon)]" // Padding when sidebar is collapsed to icon
+        )}
+      >
         <AppHeader />
+        {/* SidebarInset correctly manages background and styling for the main content area relative to the AppHeader */}
         <SidebarInset>
           <main className="flex-1 p-4 md:p-6">{children}</main>
         </SidebarInset>
