@@ -20,7 +20,7 @@ export type FetchNewsArticlesInput = z.infer<typeof FetchNewsArticlesInputSchema
 
 const ArticleSchema = z.object({
   title: z.string().describe('The title of the news article.'),
-  url: z.string().url().describe('The URL of the news article.'),
+  url: z.string().describe('The URL of the news article. Must be a valid URL string.'), // Removed .url()
   snippet: z.string().describe('A short snippet or summary of the article.'),
   publishedDate: z.string().describe('The publication date of the article (ISO 8601 format).'),
   source: z.string().describe('The source or publisher of the news article.'),

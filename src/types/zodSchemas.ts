@@ -43,7 +43,7 @@ export const LearningResourceSchema = z.object({
   title: z.string().describe("The title of the learning resource."),
   type: z.enum(['Paper', 'Article', 'Course', 'Tool', 'Video', 'Thought Leader', 'Documentation', 'Blog Post', 'Tutorial', 'Other'])
           .describe("The type of the learning resource."),
-  url: z.string().url().describe("The direct URL to access the resource."),
+  url: z.string().describe("The direct URL to access the resource. Must be a valid URL string."), // Removed .url()
   authors: z.array(z.string()).optional().describe("A list of authors or creators of the resource, if applicable."),
   publicationDate: z.string().optional().describe("The publication date of the resource, if known (e.g., YYYY-MM-DD or 'Recent')."),
   summary: z.string().optional().describe("A brief summary or description of the learning resource."),
