@@ -1,3 +1,4 @@
+
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { SearchBar } from '@/components/shared/SearchBar';
 import { ResourceCard } from '@/components/resources/ResourceCard';
@@ -38,7 +39,7 @@ export default async function ResourcesPage({ searchParams }: { searchParams?: {
   }
   
   return (
-    <div className="container mx-auto pt-0 pb-8 px-4 md:px-0">
+    <div className="w-full max-w-screen-xl pt-0 pb-8">
       <SectionHeader
         title="Learning & Resource Curation"
         description="Curated learning paths and resources to help you stay updated on key AI trends. (Ratings are illustrative)."

@@ -1,3 +1,4 @@
+
 import type { Trend, LearningResource } from '@/types';
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
@@ -7,8 +8,6 @@ import { mockResources } from '@/lib/data';
 
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
-// LoadingOverlay is now managed by Suspense in RootLayout for initial page load.
-// import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Lightbulb, Target, BookOpen, Terminal, AlertTriangle, ListChecks, Briefcase } from 'lucide-react';
@@ -23,27 +22,20 @@ export default async function DashboardPage() {
   let error: string | null = null;
 
   try {
-    // Define input for fetching trends
     const trendInputParams: GenerateAiTrendsInput = {
       timePeriod: "past week",
       numberOfTrends: DEFAULT_NUMBER_OF_TRENDS_TO_FETCH,
     };
 
-    // Prime the cache and get initial data. This will make the AI calls.
-    // Subsequent calls to generateAiTrendsCached and suggestCapitalizationOpportunitiesCached 
-    // on other pages should hit the cache if inputs are the same and cache is not stale.
     console.log("DashboardPage: Calling primeAiDataCache");
     const primedData = await primeAiDataCache(trendInputParams);
     trends = primedData.trends;
     allOpportunities = primedData.opportunities;
     console.log(`DashboardPage: Received ${trends.length} trends and ${allOpportunities.length} opportunity sets after priming.`);
 
-
-    // If, for some reason, priming didn't yield data (e.g. error during priming not caught by primeAiDataCache's internal try-catch for opportunities)
-    // or if you want to ensure data is present even if priming partially fails:
     if (!trends || trends.length === 0) {
         console.log("DashboardPage: Priming returned no trends, attempting direct fetch.");
-        trends = await generateAiTrendsCached(trendInputParams); // Fallback or ensure data
+        trends = await generateAiTrendsCached(trendInputParams); 
         if (trends.length > 0 && allOpportunities.length === 0) {
              const opportunityPromises = trends.map(async (trend) => {
                 const aiTrendsSummary = `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}\nCustomer Impact Highlights: ${trend.customerImpact.slice(0,1).map(ci => `${ci.industry}: ${ci.impactAnalysis}`).join(', ')}`;
@@ -59,7 +51,6 @@ export default async function DashboardPage() {
         }
     }
 
-
     featuredResources = mockResources.slice(0, 3);
 
   } catch (e) {
@@ -68,12 +59,10 @@ export default async function DashboardPage() {
   }
 
   const displayOpportunities = allOpportunities.find(op => op.data !== null)?.data ?? null;
-  const displayTrends = trends.slice(0, DEFAULT_NUMBER_OF_TRENDS_TO_FETCH); // Ensure we only display the requested number
+  const displayTrends = trends.slice(0, DEFAULT_NUMBER_OF_TRENDS_TO_FETCH);
 
   return (
-    <div className="container mx-auto pt-0 pb-8 px-4 md:px-0">
-      {/* LoadingOverlay is triggered via Suspense in layout for the initial data fetch */}
-
+    <div className="w-full max-w-screen-xl pt-0 pb-8">
       <SectionHeader
         title="AI Insights Hub Dashboard"
         description="Your central overview of the latest AI intelligence, strategic recommendations, and learning resources."
@@ -106,7 +95,7 @@ export default async function DashboardPage() {
           title="Key AI Trends"
           icon={<Lightbulb className="h-5 w-5 text-primary" />}
           viewAllLink="/trends"
-          isLoading={false} // Data is pre-loaded or error handled above
+          isLoading={false}
         >
           {displayTrends.length > 0 ? (
             <ul className="space-y-3">

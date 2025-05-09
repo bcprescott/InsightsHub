@@ -1,3 +1,4 @@
+
 import type { CapitalizationStrategy, Trend } from '@/types';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
@@ -5,7 +6,7 @@ import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { SearchBar } from '@/components/shared/SearchBar';
 import { StrategyCard } from '@/components/strategies/StrategyCard';
-import { generateAiTrendsCached, suggestCapitalizationOpportunitiesCached } from '@/ai/cached-flows'; // Updated import
+import { generateAiTrendsCached, suggestCapitalizationOpportunitiesCached } from '@/ai/cached-flows'; 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { DEFAULT_NUMBER_OF_TRENDS_TO_FETCH } from '@/lib/constants';
@@ -140,7 +141,7 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
   }
   
   return (
-    <div className="container mx-auto pt-0 pb-8 px-4 md:px-0">
+    <div className="w-full max-w-screen-xl pt-0 pb-8">
       <SectionHeader
         title="Capitalization Strategies"
         description="Discover AI-driven recommendations for new service offerings, partnerships, and actionable steps to capitalize on emerging AI trends."

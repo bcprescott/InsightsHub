@@ -1,9 +1,10 @@
+
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { SearchBar } from '@/components/shared/SearchBar';
 import { TrendCard } from '@/components/trends/TrendCard';
 import type { Trend } from '@/types';
 import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
-import { generateAiTrendsCached } from '@/ai/cached-flows'; // Updated import
+import { generateAiTrendsCached } from '@/ai/cached-flows'; 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { DEFAULT_NUMBER_OF_TRENDS_TO_FETCH } from '@/lib/constants';
@@ -40,7 +41,7 @@ export default async function TrendsPage({ searchParams }: { searchParams?: { qu
   }
 
   return (
-    <div className="container mx-auto pt-0 pb-8 px-4 md:px-0">
+    <div className="w-full max-w-screen-xl pt-0 pb-8">
       <SectionHeader
         title="Weekly AI Trend Analysis"
         description="Stay ahead with the latest AI-generated insights into market trends, customer impact, and strategic positioning for the past week."
