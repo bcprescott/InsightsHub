@@ -1,26 +1,37 @@
 import type { CapitalizationStrategy, Trend } from '@/types';
 import type { SuggestCapitalizationOpportunitiesOutput } from '@/ai/flows/suggest-opportunities';
+import type { GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
 
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { SearchBar } from '@/components/shared/SearchBar';
 import { StrategyCard } from '@/components/strategies/StrategyCard';
-import { generateAiTrends, type GenerateAiTrendsInput } from '@/ai/flows/generate-ai-trends-flow';
+import { generateAiTrends } from '@/ai/flows/generate-ai-trends-flow';
 import { suggestCapitalizationOpportunities } from '@/ai/flows/suggest-opportunities';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 
+// Helper function to get current week in YYYY-Www format
+const getCurrentWeekFormatted = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const startOfYear = new Date(year, 0, 1);
+  const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+  const dayOfWeek = (startOfYear.getDay() + 6) % 7; // 0 for Monday, 1 for Tuesday .. 6 for Sunday (ISO 8601)
+  const weekNumber = Math.ceil((days + dayOfWeek + 1) / 7);
+  return `${year}-W${String(weekNumber).padStart(2, '0')}`;
+};
+
 // Helper function to map SuggestCapitalizationOpportunitiesOutput to CapitalizationStrategy
 const mapOpportunitiesToStrategy = (
-  opportunities: SuggestCapitalizationOpportunitiesOutput | null, // Allow null for error cases
-  trend: Trend
+  opportunities: SuggestCapitalizationOpportunitiesOutput | null,
+  trend: Trend 
 ): CapitalizationStrategy => {
   if (!opportunities) {
-    // Create a placeholder/error strategy if opportunities couldn't be generated
     return {
       id: `strategy-failed-${trend.id}`,
       trendId: trend.id,
       title: `Strategy Generation Failed for: ${trend.title}`,
-      description: `Could not generate a capitalization strategy for the AI trend titled "${trend.title}". This may be due to an issue with the AI model or the input data. Please check the system logs.`,
+      description: `Could not generate a capitalization strategy for the AI trend titled "${trend.title}". This may be due to an issue with the AI model or the input data.`,
       date: trend.date,
       actionableSteps: [{ step: "Review trend and attempt strategy regeneration if applicable.", priority: 'High' }],
       newServiceOffering: undefined,
@@ -34,61 +45,87 @@ const mapOpportunitiesToStrategy = (
     trendId: trend.id,
     title: `Capitalization Strategy for: ${trend.title}`,
     description: `Strategic recommendations to capitalize on the AI trend titled "${trend.title}". This strategy explores potential new services, partnerships, target clients, and actionable steps.`,
-    date: trend.date, // Use trend's date
+    date: trend.date,
     newServiceOffering: opportunities.serviceOfferings && opportunities.serviceOfferings.length > 0
       ? {
-          name: opportunities.serviceOfferings[0], // Take the first suggested offering
-          scope: 'To be defined based on detailed analysis.', // Generic scope
-          valueProposition: 'Leverages insights from the AI trend to deliver value.', // Generic VP
+          name: opportunities.serviceOfferings[0],
+          scope: 'To be defined based on detailed analysis.',
+          valueProposition: 'Leverages insights from the AI trend to deliver value.',
         }
       : undefined,
     partnershipOpportunities: opportunities.partnershipOpportunities?.map(opp => ({
-      partnerType: 'AI/Tech Partner', // Generic partner type
+      partnerType: 'AI/Tech Partner',
       rationale: opp,
-      potentialPartners: [], // Not provided by current flow
+      potentialPartners: [],
     })) || [],
     targetClients: opportunities.targetClients?.map(clientProfile => ({
-      industry: 'Various', // Generic industry
+      industry: 'Various',
       profile: clientProfile,
     })) || [],
     actionableSteps: opportunities.actionableSteps?.map(step => ({
       step: step,
-      priority: 'Medium', // Default priority
+      priority: 'Medium',
     })) || [{ step: 'Define specific actionable steps based on the generated opportunities.', priority: 'Medium' }],
   };
 };
 
-export default async function StrategiesPage({ searchParams }: { searchParams?: { trendId?: string, query?: string } }) {
+type TrendDataFromUrl = Pick<Trend, 'id' | 'title' | 'summary' | 'category'>;
+
+export default async function StrategiesPage({ searchParams }: { searchParams?: { trendData?: string, query?: string, trendId?: string } }) {
   let strategies: CapitalizationStrategy[] = [];
   let error: string | null = null;
   let isLoading = true;
 
   try {
-    // Step 1: Fetch AI trends (consistent number with Trends page)
-    const trendInput: GenerateAiTrendsInput = {
-      timePeriod: "past week",
-      numberOfTrends: 3, // Fetch 3 trends to align with Trends page and dashboard
-    };
-    const fetchedTrends = await generateAiTrends(trendInput);
+    if (searchParams?.trendData) {
+      // Generate strategy for a single trend passed in trendData
+      const trendFromParams: TrendDataFromUrl = JSON.parse(decodeURIComponent(searchParams.trendData));
+      
+      const trendForStrategy: Trend = {
+        id: trendFromParams.id,
+        title: trendFromParams.title,
+        summary: trendFromParams.summary,
+        category: trendFromParams.category,
+        date: getCurrentWeekFormatted(), // Use current week for the strategy based on this trend
+        // Fill with minimal valid data for parts not directly used by mapOpportunitiesToStrategy or suggest...
+        customerImpact: [], 
+        consultingPositioning: { strategicAdvice: "Strategy derived from specific trend data." }, 
+      };
+      
+      const opportunitiesInput = {
+        aiTrends: `Trend Title: ${trendForStrategy.title}\nSummary: ${trendForStrategy.summary}\nCategory: ${trendForStrategy.category}`,
+      };
+      let opportunitiesOutput: SuggestCapitalizationOpportunitiesOutput | null = null;
+      try {
+        opportunitiesOutput = await suggestCapitalizationOpportunities(opportunitiesInput);
+      } catch (oppError) {
+        console.warn(`Failed to generate strategy for specific trend "${trendForStrategy.title}":`, oppError);
+      }
+      strategies = [mapOpportunitiesToStrategy(opportunitiesOutput, trendForStrategy)];
 
-    if (fetchedTrends && fetchedTrends.length > 0) {
-      // Step 2: For each trend, generate capitalization opportunities in parallel
-      const opportunityPromises = fetchedTrends.map(async (trend) => {
-        const opportunitiesInput = {
-          aiTrends: `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}`,
-        };
-        let opportunitiesOutput: SuggestCapitalizationOpportunitiesOutput | null = null;
-        try {
-          opportunitiesOutput = await suggestCapitalizationOpportunities(opportunitiesInput);
-        } catch (oppError) {
-          console.warn(`Failed to generate strategy for trend "${trend.title}":`, oppError);
-          // opportunitiesOutput remains null, mapOpportunitiesToStrategy will handle this
-        }
-        return mapOpportunitiesToStrategy(opportunitiesOutput, trend);
-      });
+    } else {
+      // Fallback: Generate strategies for top N trends
+      const trendInput: GenerateAiTrendsInput = {
+        timePeriod: "past week",
+        numberOfTrends: 3,
+      };
+      const fetchedTrends = await generateAiTrends(trendInput);
 
-      // Wait for all strategy generation attempts to complete
-      strategies = await Promise.all(opportunityPromises);
+      if (fetchedTrends && fetchedTrends.length > 0) {
+        const opportunityPromises = fetchedTrends.map(async (trend) => {
+          const opportunitiesInput = {
+            aiTrends: `Trend Title: ${trend.title}\nSummary: ${trend.summary}\nCategory: ${trend.category}`,
+          };
+          let opportunitiesOutput: SuggestCapitalizationOpportunitiesOutput | null = null;
+          try {
+            opportunitiesOutput = await suggestCapitalizationOpportunities(opportunitiesInput);
+          } catch (oppError) {
+            console.warn(`Failed to generate strategy for trend "${trend.title}":`, oppError);
+          }
+          return mapOpportunitiesToStrategy(opportunitiesOutput, trend);
+        });
+        strategies = await Promise.all(opportunityPromises);
+      }
     }
   } catch (e) {
     console.error("Failed to load strategies data:", e);
@@ -97,12 +134,9 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
     isLoading = false;
   }
 
-  // Apply filters if searchParams exist
   let displayedStrategies = strategies;
-  if (searchParams?.trendId) {
-    displayedStrategies = displayedStrategies.filter(s => s.trendId === searchParams.trendId);
-  }
 
+  // General text query filtering - applies to either single strategy or list of N strategies
   if (searchParams?.query) {
     const query = searchParams.query.toLowerCase();
     displayedStrategies = displayedStrategies.filter(strategy =>
@@ -111,6 +145,13 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
       (strategy.newServiceOffering?.name.toLowerCase().includes(query)) ||
       (strategy.targetClients?.some(tc => tc.industry.toLowerCase().includes(query) || tc.profile.toLowerCase().includes(query)))
     );
+  }
+  
+  // If not coming from a specific trendData, and an old trendId param is present (e.g. manual URL), try to filter the N general strategies
+  // This part is less reliable due to potential ID mismatches if trends aren't perfectly stable.
+  // The trendData path is preferred for direct navigation.
+  if (!searchParams?.trendData && searchParams?.trendId) {
+     displayedStrategies = displayedStrategies.filter(s => s.trendId === searchParams.trendId);
   }
   
   return (
@@ -144,8 +185,8 @@ export default async function StrategiesPage({ searchParams }: { searchParams?: 
         <div className="text-center py-10">
           <p className="text-lg text-muted-foreground">No capitalization strategies found or generated.</p>
           {searchParams?.query && <p className="text-sm text-muted-foreground">Try different keywords or clear the search.</p>}
-          {searchParams?.trendId && <p className="text-sm text-muted-foreground">Try selecting a different trend or viewing all strategies.</p>}
-           {!searchParams?.query && !searchParams?.trendId && <p className="text-sm text-muted-foreground">This may be because no AI trends were identified or strategies could not be generated for them.</p>}
+          {searchParams?.trendId && !searchParams?.trendData && <p className="text-sm text-muted-foreground">No strategy matched the specified trend ID from the generally generated strategies.</p>}
+          {!searchParams?.query && !searchParams?.trendId && !searchParams?.trendData && <p className="text-sm text-muted-foreground">This may be because no AI trends were identified or strategies could not be generated for them.</p>}
         </div>
       )}
 

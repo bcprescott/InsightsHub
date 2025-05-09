@@ -19,6 +19,14 @@ interface TrendCardProps {
 }
 
 export function TrendCard({ trend }: TrendCardProps) {
+  const trendDataForUrl = {
+    id: trend.id,
+    title: trend.title,
+    summary: trend.summary,
+    category: trend.category,
+  };
+  const strategyLink = `/strategies?trendData=${encodeURIComponent(JSON.stringify(trendDataForUrl))}`;
+
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
@@ -97,7 +105,7 @@ export function TrendCard({ trend }: TrendCardProps) {
         </div>
       </CardContent>
       <CardFooter className="border-t pt-4">
-        <Link href={`/strategies?trendId=${trend.id}`} passHref legacyBehavior>
+        <Link href={strategyLink} passHref legacyBehavior>
           <Button variant="outline" className="w-full">
             View Capitalization Strategies <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
