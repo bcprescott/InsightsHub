@@ -50,7 +50,7 @@ These instructions will get you a copy of the project up and running on your loc
     *   Add your API key to the `.env` file as follows:
 
         ```env
-        GOOGLE_API_KEY=YOUR_GEMINI_API_KEY
+        GEMINI_API_KEY=YOUR_GEMINI_API_KEY
         ```
         Replace `YOUR_GEMINI_API_KEY` with the actual key you obtained.
 
